@@ -1,8 +1,11 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::{BTreeMap, HashMap},
+    path::{Path, PathBuf},
+};
 
-use git2::{Delta, Repository, Tree};
+use git2::{Delta, Oid, Repository, Tree};
 
-use crate::{ChangeHistory, Credit, MonsterId, Tracker};
+use crate::{git_change::SpriteSheetContent, ChangeHistory, Credit, MonsterId, Tracker};
 
 #[derive(Default, Debug)]
 pub struct AllChanges {
@@ -30,6 +33,8 @@ impl AllChanges {
             .unwrap(),
         );
 
+        let mut tracker_cache: HashMap<Oid, Tracker> = HashMap::new();
+
         for delta in diff.deltas() {
             let (reference_file, reference_tree) = if delta.status() == Delta::Deleted {
                 (delta.old_file(), old_tree)
@@ -37,17 +42,23 @@ impl AllChanges {
                 (delta.new_file(), new_tree)
             };
 
-            let tracker: Tracker = serde_json::from_slice(
-                repo.find_blob(
-                    reference_tree
-                        .get_path(&PathBuf::from("tracker.json"))
-                        .unwrap()
-                        .id(),
+            let tracker = if let Some(tracker) = tracker_cache.get(&reference_tree.id()) {
+                tracker
+            } else {
+                let tracker: Tracker = serde_json::from_slice(
+                    repo.find_blob(
+                        reference_tree
+                            .get_path(&PathBuf::from("tracker.json"))
+                            .unwrap()
+                            .id(),
+                    )
+                    .unwrap()
+                    .content(),
                 )
-                .unwrap()
-                .content(),
-            )
-            .unwrap();
+                .unwrap();
+                tracker_cache.insert(reference_tree.id(), tracker);
+                tracker_cache.get(&reference_tree.id()).unwrap()
+            };
 
             let path = reference_file
                 .path()
@@ -96,11 +107,7 @@ impl AllChanges {
 
                     match change_is_on {
                         "portrait" => {
-                            change.author = Some(credit
-                                .entries
-                                .get(&tracker_entry.portrait_credit)
-                                .unwrap()
-                                .clone());
+                            change.author = Some(credit.get(&tracker_entry.portrait_credit));
                             let portrait_file = repo
                                 .find_blob(reference_file.id())
                                 .expect("can't get a portrait blob")
@@ -130,7 +137,49 @@ impl AllChanges {
                                 _ => todo!(),
                             }
                         }
-                        "sprite" => todo!(),
+                        "sprite" => {
+                            if changed_content_name == "AnimData" || changed_content_name == "FrameData" {
+                                continue;
+                            };
+                            let changed_anim_name = changed_content_name.split('-').next().unwrap();
+                            if change.sprites_change.already_handled(changed_anim_name) {
+                                continue;
+                            };
+
+                            change.author = Some(credit.get(&tracker_entry.sprite_credit));
+
+                            let reference_sprite = get_sprite_sheet_from_tree(
+                                &repo,
+                                &reference_tree,
+                                &path.parent().unwrap(),
+                                changed_anim_name,
+                            );
+
+                            match delta.status() {
+                                Delta::Deleted => change
+                                    .sprites_change
+                                    .removed
+                                    .push((changed_anim_name.to_string(), reference_sprite)),
+                                Delta::Added => change
+                                    .sprites_change
+                                    .added
+                                    .push((changed_anim_name.to_string(), reference_sprite)),
+                                Delta::Modified => {
+                                    let old_sprite = get_sprite_sheet_from_tree(
+                                        &repo,
+                                        &old_tree,
+                                        &path.parent().unwrap(),
+                                        changed_anim_name,
+                                    );
+                                    change.sprites_change.changed.push((
+                                        changed_anim_name.to_string(),
+                                        old_sprite,
+                                        reference_sprite,
+                                    ));
+                                }
+                                _ => todo!(),
+                            }
+                        }
                         _ => panic!(),
                     };
                 }
@@ -138,5 +187,32 @@ impl AllChanges {
                 root_folder => panic!("unknown root file/folder: {:?}", root_folder),
             }
         }
+    }
+}
+
+pub fn get_sprite_sheet_from_tree(
+    repo: &Repository,
+    tree: &Tree,
+    path: &Path,
+    name: &str,
+) -> SpriteSheetContent {
+    let get_file = |name: &str| {
+        repo.find_blob(tree.get_path(&path.join(name)).unwrap().id())
+            .unwrap()
+            .content()
+            .to_vec()
+    };
+
+    let anim = get_file(&format!("{}-Anim.png", name));
+    let offsets = get_file(&format!("{}-Offsets.png", name));
+    let shadow = get_file(&format!("{}-Shadow.png", name));
+    let animdata = get_file("AnimData.xml");
+
+    SpriteSheetContent {
+        anim,
+        offsets,
+        shadow,
+        name: name.to_string(),
+        animdata,
     }
 }

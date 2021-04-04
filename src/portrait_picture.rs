@@ -79,15 +79,13 @@ pub fn present_portrait_picture(
             lines.push(LineContent::PortraitList(
                 portrait_line.iter().cloned().collect::<Vec<_>>(),
             ));
-        };
+        }
     };
 
     if !change.modifications.is_empty() {
         lines.push(LineContent::Text("changed".into()));
         for (old, new) in &change.modifications {
-            lines.push(LineContent::PortraitList(
-                vec![old.clone(), new.clone()]
-            ));
+            lines.push(LineContent::PortraitList(vec![old.clone(), new.clone()]));
         }
     }
 

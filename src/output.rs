@@ -58,12 +58,7 @@ impl OutputItem {
     fn from_change(monster_id: &MonsterId, change: &Change) -> Vec<Self> {
         let mut result = Vec::new();
         if change.portraits_change.have_change() {
-            let text = generate_text(
-                "portrait",
-                "portraits",
-                &change.portraits_change,
-                &change,
-            );
+            let text = generate_text("portrait", "portraits", &change.portraits_change, &change);
 
             let presentation = PortraitPicturePresentation {
                 additions: change
@@ -85,7 +80,7 @@ impl OutputItem {
                     .map(|(_, x)| load_png_from_mem(x))
                     .collect(),
             };
-            
+
             let image = present_portrait_picture(presentation);
 
             result.push(OutputItem {
@@ -95,7 +90,9 @@ impl OutputItem {
         };
 
         if change.sprites_change.have_change() {
-            todo!();
+            let text = generate_text("sprite kind", "sprites kinds", &change.sprites_change, &change);
+
+            result.push(OutputItem { image: None, text });
         }
 
         result
@@ -155,10 +152,7 @@ fn generate_text<T: PartialEq>(
 
     format!(
         "{} {} {} for {}",
-        author_text,
-        change_text,
-        what_change_text,
-        change.monster_name
+        author_text, change_text, what_change_text, change.monster_name
     ) //TODO: link to commit
 }
 

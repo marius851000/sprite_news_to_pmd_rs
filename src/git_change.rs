@@ -55,18 +55,37 @@ impl<T: PartialEq> KindChange<T> {
     pub fn have_change(&self) -> bool {
         !self.added.is_empty() || !self.changed.is_empty() || !self.removed.is_empty()
     }
+
+    pub fn already_handled(&self, id: &str) -> bool {
+        for (name, _) in &self.added {
+            if name == id {
+                return true;
+            }
+        }
+        for (name, _, _) in &self.changed {
+            if name == id {
+                return true;
+            }
+        }
+        for (name, _) in &self.removed {
+            if name == id {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[derive(PartialEq, Default, Debug)]
 pub struct SpriteSheetContent {
-    /// the content of *-Anim.xml
-    anim: Vec<u8>,
-    /// the content of *-Offsets.xml
-    offsets: Vec<u8>,
-    /// the content fo *-Shadow.xml
-    shadow: Vec<u8>,
+    /// the content of *-Anim.png
+    pub anim: Vec<u8>,
+    /// the content of *-Offsets.png
+    pub offsets: Vec<u8>,
+    /// the content fo *-Shadow.png
+    pub shadow: Vec<u8>,
     /// the name of the animation (that is, here, the content specified by *)
-    name: String,
+    pub name: String,
     /// the related AnimData.xml file
-    animdata: Vec<u8>,
+    pub animdata: Vec<u8>,
 }

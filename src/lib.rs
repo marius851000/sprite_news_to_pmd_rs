@@ -2,7 +2,7 @@ mod portrait_picture;
 pub use portrait_picture::{present_portrait_picture, PortraitPicturePresentation};
 
 mod git_change;
-pub use git_change::{KindChange, Change, ChangeHistory};
+pub use git_change::{Change, ChangeHistory, KindChange};
 
 mod get_changes_from_repo;
 pub use get_changes_from_repo::get_changes_from_repo;

@@ -13,7 +13,7 @@ impl Tracker {
         let mut current = self.0.get(part_iter.next().unwrap()).unwrap();
         for part in part_iter {
             current = current.subgroups.0.get(part).unwrap();
-        };
+        }
         current
     }
 
@@ -25,7 +25,7 @@ impl Tracker {
             current = current.subgroups.0.get(part).unwrap();
             result.push(' ');
             result.push_str(&current.name);
-        };
+        }
         result
     }
 }

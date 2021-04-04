@@ -1,12 +1,12 @@
 use git2::Repository;
-use sprite_news_presentation::{Output, get_changes_from_repo};
+use sprite_news_presentation::{get_changes_from_repo, Output};
 
 fn main() {
     let repo = Repository::open("/home/marius/SpriteCollab").expect("can't open the git reppo");
     let changes = get_changes_from_repo(
         &repo,
-        "7833d2366437859fcafe20c14224c064c8b475d8",
-        "3b419eba7309220d658766f556859b057bb77e44",
+        "8db6d4f9e199db8dfe48d2dd0508564186d06d50",
+        "62cf80450bd5e5d07a9beee40283e57cec6a21f7",
     );
 
     let o = Output::from_all_change(changes);

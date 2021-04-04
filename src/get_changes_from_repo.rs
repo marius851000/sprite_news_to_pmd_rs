@@ -1,4 +1,4 @@
-use crate::{AllChanges};
+use crate::AllChanges;
 use git2::{Commit, Repository, Revwalk, Sort, Tree};
 
 fn get_commit<'repo>(repo: &'repo Repository, rev: &str) -> Commit<'repo> {

@@ -45,6 +45,10 @@ impl Credit {
         }
         result
     }
+
+    pub fn get(&self, id: &String) -> CreditEntry {
+        self.entries.get(id).unwrap().clone()
+    }
 }
 
 #[derive(Clone, Debug)]
