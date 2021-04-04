@@ -16,6 +16,18 @@ impl Tracker {
         };
         current
     }
+
+    pub fn get_monster_name(&self, monster_id: &MonsterId) -> String {
+        let mut part_iter = monster_id.path.iter();
+        let mut current = self.0.get(part_iter.next().unwrap()).unwrap();
+        let mut result = current.name.clone();
+        for part in part_iter {
+            current = current.subgroups.0.get(part).unwrap();
+            result.push(' ');
+            result.push_str(&current.name);
+        };
+        result
+    }
 }
 
 #[derive(Deserialize, Debug)]

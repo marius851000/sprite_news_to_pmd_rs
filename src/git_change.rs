@@ -8,14 +8,14 @@ pub struct ChangeHistory {
 }
 
 impl ChangeHistory {
-    pub fn get_or_insert_mut(&mut self, id: &Oid) -> &mut Change {
+    pub fn get_or_insert_mut(&mut self, id: &Oid, monster_name: String) -> &mut Change {
         for (change_id, change) in self.changes.iter().enumerate() {
             if &change.commit_ref == id {
                 return self.changes.get_mut(change_id).unwrap();
             }
         }
         let new_position = self.changes.len();
-        self.changes.push(Change::new(id.clone()));
+        self.changes.push(Change::new(id.clone(), monster_name));
         return self.changes.get_mut(new_position).unwrap();
     }
 }
@@ -23,15 +23,17 @@ impl ChangeHistory {
 #[derive(Debug)]
 pub struct Change {
     pub author: Option<CreditEntry>,
+    pub monster_name: String,
     pub commit_ref: Oid,
     pub portraits_change: KindChange<Vec<u8>>,
     pub sprites_change: KindChange<SpriteSheetContent>,
 }
 
 impl Change {
-    fn new(commit_ref: Oid) -> Self {
+    fn new(commit_ref: Oid, monster_name: String) -> Self {
         Self {
             author: None,
+            monster_name,
             commit_ref,
             portraits_change: KindChange::default(),
             sprites_change: KindChange::default(),

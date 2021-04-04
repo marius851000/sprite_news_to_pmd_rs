@@ -61,7 +61,6 @@ impl OutputItem {
             let text = generate_text(
                 "portrait",
                 "portraits",
-                monster_id,
                 &change.portraits_change,
                 &change,
             );
@@ -106,7 +105,6 @@ impl OutputItem {
 fn generate_text<T: PartialEq>(
     singular: &str,
     plurial: &str,
-    monster_id: &MonsterId,
     kind: &KindChange<T>,
     change: &Change,
 ) -> String {
@@ -156,12 +154,12 @@ fn generate_text<T: PartialEq>(
     };
 
     format!(
-        "{} {} {} for the pokemon with the id {}",
+        "{} {} {} for {}",
         author_text,
         change_text,
         what_change_text,
-        monster_id.path.join("/")
-    ) //TODO: pokemon name, link to commit
+        change.monster_name
+    ) //TODO: link to commit
 }
 
 fn gen_change_text(verb: &str, changes: Vec<String>) -> String {

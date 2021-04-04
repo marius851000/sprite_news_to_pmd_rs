@@ -79,6 +79,7 @@ impl AllChanges {
                     let monster_id = MonsterId::from_path(&changed_pokemon_path);
 
                     let tracker_entry = tracker.get_subgroup(&monster_id);
+                    let monster_name = tracker.get_monster_name(&monster_id);
 
                     let changed_monster = if let Some(v) = self.changes.get_mut(&monster_id) {
                         v
@@ -89,7 +90,7 @@ impl AllChanges {
                     };
 
                     let oid = reference_tree.id();
-                    let change = changed_monster.get_or_insert_mut(&oid);
+                    let change = changed_monster.get_or_insert_mut(&oid, monster_name);
 
                     let changed_content_name = file_name.split(".").next().unwrap().to_string();
 
