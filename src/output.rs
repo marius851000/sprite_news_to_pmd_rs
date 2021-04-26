@@ -1,5 +1,5 @@
 use image::{load_from_memory_with_format, ImageBuffer, ImageFormat, Rgb};
-use std::io::Write;
+use std::{fs::create_dir_all, io::Write};
 use std::{fs::File, path::PathBuf};
 
 use crate::{
@@ -24,6 +24,7 @@ impl Output {
     }
 
     pub fn write_to_folder(&self, text_path: PathBuf, image_path: PathBuf) {
+        create_dir_all(&image_path).unwrap();
         let mut image_next_id = 0;
         let mut result_markdown_file = String::new();
         for output in &self.out {
