@@ -3,3 +3,4 @@ test.*
 test_image
 flamegraph.svg
 perf.data*
+images/
