@@ -47,7 +47,11 @@ impl Credit {
     }
 
     pub fn get(&self, id: &String) -> CreditEntry {
-        self.entries.get(id).unwrap().clone()
+        if let Some(entry) = self.entries.get(id) {
+            entry.clone()
+        } else {
+            CreditEntry::new(None, None, id.clone())
+        }
     }
 }
 

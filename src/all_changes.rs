@@ -107,7 +107,11 @@ impl AllChanges {
 
                     match change_is_on {
                         "portrait" => {
-                            change.author = Some(credit.get(&tracker_entry.portrait_credit));
+                            if tracker_entry.portrait_credit == "" {
+                                change.author = None;
+                            } else {
+                                change.author = Some(credit.get(&tracker_entry.portrait_credit));
+                            }
                             let portrait_file = repo
                                 .find_blob(reference_file.id())
                                 .expect("can't get a portrait blob")
@@ -144,9 +148,13 @@ impl AllChanges {
                             let changed_anim_name = changed_content_name.split('-').next().unwrap();
                             if change.sprites_change.already_handled(changed_anim_name) {
                                 continue;
-                            };
+                            }
 
-                            change.author = Some(credit.get(&tracker_entry.sprite_credit));
+                            if tracker_entry.sprite_credit == "" {
+                                change.author = None;
+                            } else {
+                                change.author = Some(credit.get(&tracker_entry.sprite_credit));
+                            }
 
                             let reference_sprite = get_sprite_sheet_from_tree(
                                 &repo,
