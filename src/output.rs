@@ -1,4 +1,4 @@
-use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba, load_from_memory_with_format};
+use image::{load_from_memory_with_format, DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
 use std::{collections::HashSet, fs::create_dir_all, io::Write};
 use std::{fs::File, path::PathBuf};
 
@@ -39,7 +39,9 @@ impl ImageStore {
         self.used_name.insert(name_tip.to_string());
         let filename = format!("{}.png", name_tip);
         let target_file = self.folder.join(filename);
-        image.save_with_format(&target_file, ImageFormat::Png).unwrap();
+        image
+            .save_with_format(&target_file, ImageFormat::Png)
+            .unwrap();
         target_file
     }
 }
@@ -234,8 +236,8 @@ fn gen_change_text(verb: &str, changes: Vec<String>) -> String {
 }
 
 fn human_list(elements: Vec<String>) -> String {
-    if elements.len() == 0 {
-        return String::new();
+    if elements.is_empty() {
+        String::new()
     } else if elements.len() == 1 {
         elements.first().unwrap().to_string()
     } else {

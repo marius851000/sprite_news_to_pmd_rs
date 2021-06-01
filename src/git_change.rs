@@ -15,7 +15,7 @@ impl ChangeHistory {
             }
         }
         let new_position = self.changes.len();
-        self.changes.push(Change::new(id.clone(), monster_name));
+        self.changes.push(Change::new(*id, monster_name));
         return self.changes.get_mut(new_position).unwrap();
     }
 }

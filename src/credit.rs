@@ -6,7 +6,7 @@ pub struct Credit {
 }
 
 fn option_from_string(s: &str) -> Option<String> {
-    if s == "" {
+    if s.is_empty() {
         None
     } else {
         Some(s.to_string())
@@ -21,7 +21,7 @@ impl Credit {
             .next()
             .expect("can't get the first line of a credit file");
         for line in line_iterator {
-            if line == "" {
+            if line.is_empty() {
                 continue;
             };
             let mut line_splited = line.split('\t');
@@ -46,11 +46,11 @@ impl Credit {
         result
     }
 
-    pub fn get(&self, id: &String) -> CreditEntry {
+    pub fn get(&self, id: &str) -> CreditEntry {
         if let Some(entry) = self.entries.get(id) {
             entry.clone()
         } else {
-            CreditEntry::new(None, None, id.clone())
+            CreditEntry::new(None, None, id.to_string())
         }
     }
 }

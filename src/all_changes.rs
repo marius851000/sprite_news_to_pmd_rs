@@ -62,20 +62,21 @@ impl AllChanges {
 
             let path = reference_file
                 .path()
-                .expect(&format!("can't get path for {:?}", reference_file));
+                .unwrap_or_else(|| panic!("can't get path for {:?}", reference_file));
 
             let change_is_on = path
                 .iter()
                 .next()
-                .expect(&format!(
-                    "can't get the first part of the path of {:?}",
-                    reference_file
-                ))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "can't get the first part of the path of {:?}",
+                        reference_file
+                    )
+                })
                 .to_str()
-                .expect(&format!(
-                    "can't get convert the of the file {:?}",
-                    reference_file
-                ));
+                .unwrap_or_else(|| {
+                    panic!("can't get convert the of the file {:?}", reference_file)
+                });
 
             let file_name = path.iter().last().unwrap().to_string_lossy().to_string();
 
@@ -103,11 +104,11 @@ impl AllChanges {
                     let oid = reference_tree.id();
                     let change = changed_monster.get_or_insert_mut(&oid, monster_name);
 
-                    let changed_content_name = file_name.split(".").next().unwrap().to_string();
+                    let changed_content_name = file_name.split('.').next().unwrap().to_string();
 
                     match change_is_on {
                         "portrait" => {
-                            if tracker_entry.portrait_credit == "" {
+                            if tracker_entry.portrait_credit.is_empty() {
                                 change.author = None;
                             } else {
                                 change.author = Some(credit.get(&tracker_entry.portrait_credit));
@@ -142,7 +143,9 @@ impl AllChanges {
                             }
                         }
                         "sprite" => {
-                            if changed_content_name == "AnimData" || changed_content_name == "FrameData" {
+                            if changed_content_name == "AnimData"
+                                || changed_content_name == "FrameData"
+                            {
                                 continue;
                             };
                             let changed_anim_name = changed_content_name.split('-').next().unwrap();
@@ -150,7 +153,7 @@ impl AllChanges {
                                 continue;
                             }
 
-                            if tracker_entry.sprite_credit == "" {
+                            if tracker_entry.sprite_credit.is_empty() {
                                 change.author = None;
                             } else {
                                 change.author = Some(credit.get(&tracker_entry.sprite_credit));

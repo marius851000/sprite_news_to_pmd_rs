@@ -3,7 +3,7 @@ use image::{
     DynamicImage, GenericImage, ImageBuffer, Rgb, Rgba,
 };
 
-use crate::{output::{ChangeIllustration, ChangeIllustrationImage}};
+use crate::output::{ChangeIllustration, ChangeIllustrationImage};
 
 pub type PortraitImage = ImageBuffer<Rgb<u8>, Vec<u8>>;
 
@@ -32,7 +32,7 @@ impl PortraitCollection {
     }
 
     fn get_height(&self) -> usize {
-       self.0.len() * RESOLUTION_Y * INT_SCALE_FACTOR
+        self.0.len() * RESOLUTION_Y * INT_SCALE_FACTOR
     }
 
     fn create_image(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
@@ -55,7 +55,11 @@ impl PortraitCollection {
     }
 }
 
-fn illustration_from_list_of_portrait(portraits: &[PortraitImage], title: String, name_tip: String) -> ChangeIllustration {
+fn illustration_from_list_of_portrait(
+    portraits: &[PortraitImage],
+    title: String,
+    name_tip: String,
+) -> ChangeIllustration {
     let portrait_collection: Vec<Vec<PortraitImage>> = portraits
         .chunks(MAX_PORTRAIT_BY_LINE)
         .map(|portrait_line| portrait_line.to_vec())
@@ -63,32 +67,43 @@ fn illustration_from_list_of_portrait(portraits: &[PortraitImage], title: String
     ChangeIllustration {
         filename_tip: name_tip,
         title,
-        image: ChangeIllustrationImage::Portraits(PortraitCollection(portrait_collection).create_image()),
+        image: ChangeIllustrationImage::Portraits(
+            PortraitCollection(portrait_collection).create_image(),
+        ),
     }
 }
 
-pub fn present_portrait_picture(change: PortraitPicturePresentation, name_tip: String) -> Vec<ChangeIllustration> {
+pub fn present_portrait_picture(
+    change: PortraitPicturePresentation,
+    name_tip: String,
+) -> Vec<ChangeIllustration> {
     let mut illustrations = Vec::new();
 
     if !change.additions.is_empty() {
-        illustrations.push(illustration_from_list_of_portrait(&change.additions, "added".into(), name_tip.clone()));
+        illustrations.push(illustration_from_list_of_portrait(
+            &change.additions,
+            "added".into(),
+            name_tip.clone(),
+        ));
     };
 
     if !change.deletions.is_empty() {
-        illustrations.push(illustration_from_list_of_portrait(&change.deletions, "deleted".into(), name_tip.clone()));
+        illustrations.push(illustration_from_list_of_portrait(
+            &change.deletions,
+            "deleted".into(),
+            name_tip.clone(),
+        ));
     };
 
     if !change.modifications.is_empty() {
         let mut portrait_collection = PortraitCollection::default();
 
         for (old_portrait, new_portrait) in change.modifications.into_iter() {
-            portrait_collection.0.push(vec![
-                old_portrait, new_portrait
-            ]);
-        };
+            portrait_collection.0.push(vec![old_portrait, new_portrait]);
+        }
 
         illustrations.push(ChangeIllustration {
-            filename_tip: name_tip.clone(),
+            filename_tip: name_tip,
             title: "old -> new".into(),
             image: ChangeIllustrationImage::Portraits(portrait_collection.create_image()),
         });
