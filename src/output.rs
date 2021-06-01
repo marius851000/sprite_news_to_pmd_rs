@@ -1,11 +1,48 @@
-use image::{load_from_memory_with_format, ImageBuffer, ImageFormat, Rgb};
-use std::{fs::create_dir_all, io::Write};
+use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba, load_from_memory_with_format};
+use std::{collections::HashSet, fs::create_dir_all, io::Write};
 use std::{fs::File, path::PathBuf};
 
 use crate::{
     present_portrait_picture, AllChanges, Change, KindChange, MonsterId,
     PortraitPicturePresentation,
 };
+
+pub struct ImageStore {
+    used_name: HashSet<String>,
+    folder: PathBuf,
+}
+
+impl ImageStore {
+    pub fn new(folder: PathBuf) -> Self {
+        create_dir_all(&folder).unwrap();
+        Self {
+            used_name: HashSet::new(),
+            folder,
+        }
+    }
+
+    pub fn add_image(&mut self, image: DynamicImage, name_tip: &str) -> PathBuf {
+        let name_tip = if self.used_name.contains(name_tip) {
+            let mut id_addition = 0;
+            loop {
+                let new_name_tip = format!("{}-{}", name_tip, id_addition);
+                if self.used_name.contains(&new_name_tip) {
+                    id_addition += 1;
+                } else {
+                    break new_name_tip;
+                }
+            }
+        } else {
+            name_tip.to_string()
+        };
+
+        self.used_name.insert(name_tip.to_string());
+        let filename = format!("{}.png", name_tip);
+        let target_file = self.folder.join(filename);
+        image.save_with_format(&target_file, ImageFormat::Png).unwrap();
+        target_file
+    }
+}
 
 #[derive(Debug)]
 pub struct Output {
@@ -24,23 +61,18 @@ impl Output {
     }
 
     pub fn write_to_folder(&self, text_path: PathBuf, image_path: PathBuf) {
-        create_dir_all(&image_path).unwrap();
-        let mut image_next_id = 0;
+        let mut image_store = ImageStore::new(image_path);
+
         let mut result_markdown_file = String::new();
         for output in &self.out {
             result_markdown_file.push_str("- ");
-            result_markdown_file.push_str(&output.text);
-            result_markdown_file.push('\n');
-            if let Some((image, image_name_tip)) = &output.image {
-                let image_id = image_next_id;
-                image_next_id += 1;
-                let image_path = image_path.join(format!("{}-{}.png", image_name_tip, image_id));
-                image
-                    .save_with_format(&image_path, ImageFormat::Png)
-                    .unwrap();
-                result_markdown_file.push_str(&format!("\n![]({})\n", image_path.display()));
-            };
+            result_markdown_file.push_str(&output.label);
+            result_markdown_file.push_str("\n\n");
+            for illustration in &output.illustrations {
+                illustration.write(&mut result_markdown_file, &mut image_store);
+            }
         }
+
         let mut text_writer = File::create(&text_path).unwrap();
         text_writer
             .write_all(result_markdown_file.as_bytes())
@@ -50,9 +82,9 @@ impl Output {
 
 #[derive(Debug)]
 pub struct OutputItem {
+    pub label: String,
     // second element is tip for file name
-    pub image: Option<(ImageBuffer<Rgb<u8>, Vec<u8>>, String)>,
-    pub text: String,
+    pub illustrations: Vec<ChangeIllustration>,
 }
 
 impl OutputItem {
@@ -82,22 +114,58 @@ impl OutputItem {
                     .collect(),
             };
 
-            let image = present_portrait_picture(presentation);
+            let illustrations = present_portrait_picture(presentation, monster_id.to_slug());
 
             result.push(OutputItem {
-                image: Some((image, monster_id.path.join("-").replace('/', "_"))),
-                text,
+                illustrations,
+                label: text,
             })
         };
 
         if change.sprites_change.have_change() {
-            let text = generate_text("sprite kind", "sprites kinds", &change.sprites_change, &change);
+            let text = generate_text(
+                "sprite kind",
+                "sprites kinds",
+                &change.sprites_change,
+                &change,
+            );
 
-            result.push(OutputItem { image: None, text });
+            result.push(OutputItem {
+                illustrations: Vec::new(),
+                label: text,
+            });
         }
 
         result
     }
+}
+
+#[derive(Debug)]
+pub struct ChangeIllustration {
+    pub filename_tip: String,
+    pub title: String,
+    pub image: ChangeIllustrationImage,
+}
+
+impl ChangeIllustration {
+    pub fn write(&self, md: &mut String, img_store: &mut ImageStore) {
+        md.push_str("  - **");
+        md.push_str(&self.title);
+        md.push_str("**");
+        md.push_str("\n\n");
+        let image = match &self.image {
+            ChangeIllustrationImage::Portraits(image) => DynamicImage::ImageRgba8(image.clone()),
+        };
+        let image_path = img_store.add_image(image, &self.filename_tip);
+        md.push_str("![](");
+        md.push_str(image_path.to_str().unwrap());
+        md.push_str(")\n\n");
+    }
+}
+
+#[derive(Debug)]
+pub enum ChangeIllustrationImage {
+    Portraits(ImageBuffer<Rgba<u8>, Vec<u8>>),
 }
 
 fn generate_text<T: PartialEq>(

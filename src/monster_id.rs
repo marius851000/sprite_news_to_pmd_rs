@@ -14,4 +14,8 @@ impl MonsterId {
                 .collect(),
         }
     }
+
+    pub fn to_slug(&self) -> String {
+        self.path.join(&"-")
+    }
 }

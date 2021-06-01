@@ -5,8 +5,15 @@ fn main() {
     let repo = Repository::open("/home/marius/SpriteCollab").expect("can't open the git reppo");
     let changes = get_changes_from_repo(
         &repo,
-        "2137714582c1509615dec89e3b1fdefd6e868e2d",
-        "6495a78f5e97b2e042bb3bc617b7917103eedee3"
+        "a3c728fd5ee5a31ae600e0a8c8d168cc02d56588",
+        "021216bcb339653c94403eff9b7c6d441f9c7432"
+        //"c273ca0d094c61dde306ceedf269edfd22627a62",
+        //"92de7f23b29622d87d6af22c97cf260b5186147a",
+
+	    //"3c88e0d2762f3fa3fbe7d8fa4f814382f9eac11f",
+	    //"251f41c244ed2a238b144e4afe12f97d9795d8cb",
+        //"2137714582c1509615dec89e3b1fdefd6e868e2d",
+        //"6495a78f5e97b2e042bb3bc617b7917103eedee3"
         //"b440cc0d4b8438898a1b66ba65ff935218646b0f",
         //"2f693b59209084462bf73ec20a19674c0d777d05",
 
@@ -24,7 +31,7 @@ fn main() {
     );
 
     let o = Output::from_all_change(changes);
-    o.write_to_folder("./test.md".into(), "./images/11-changes".into());
+    o.write_to_folder("./test.md".into(), "./images/14-changes".into());
 }
 
 // TODO: sprite support

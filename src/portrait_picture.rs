@@ -1,7 +1,9 @@
 use image::{
     imageops::{resize, FilterType},
-    GenericImage, ImageBuffer, Rgb,
+    DynamicImage, GenericImage, ImageBuffer, Rgb, Rgba,
 };
+
+use crate::{output::{ChangeIllustration, ChangeIllustrationImage}};
 
 pub type PortraitImage = ImageBuffer<Rgb<u8>, Vec<u8>>;
 
@@ -21,84 +23,76 @@ pub struct PortraitPicturePresentation {
     pub deletions: Vec<PortraitImage>,
 }
 
-enum LineContent {
-    Text(String),
-    PortraitList(Vec<PortraitImage>),
-}
+#[derive(Default)]
+struct PortraitCollection(Vec<Vec<PortraitImage>>);
 
-impl LineContent {
+impl PortraitCollection {
     fn get_width(&self) -> usize {
-        match self {
-            LineContent::Text(_) => 100, //TODO: more exact value
-            LineContent::PortraitList(p) => p.len() * RESOLUTION_X * INT_SCALE_FACTOR,
-        }
+        self.0.iter().map(|e| e.len()).max().unwrap_or(0) * RESOLUTION_X * INT_SCALE_FACTOR
     }
 
     fn get_height(&self) -> usize {
-        match self {
-            LineContent::Text(_) => 20, //TODO: more exact value
-            LineContent::PortraitList(_) => RESOLUTION_Y * INT_SCALE_FACTOR,
-        }
+       self.0.len() * RESOLUTION_Y * INT_SCALE_FACTOR
     }
 
-    fn write_content(&self, pos_y: u32, buffer: &mut ImageBuffer<Rgb<u8>, Vec<u8>>) {
-        match self {
-            LineContent::Text(_) => (), //TODO:
-            LineContent::PortraitList(p) => {
-                for (count, portrait) in p.iter().enumerate() {
-                    let x = count * RESOLUTION_Y * INT_SCALE_FACTOR;
-                    let scaled = resize(
-                        portrait,
-                        (RESOLUTION_X * INT_SCALE_FACTOR) as u32,
-                        (RESOLUTION_Y * INT_SCALE_FACTOR) as u32,
-                        FilterType::Nearest,
-                    );
-                    buffer.copy_from(&scaled, x as u32, pos_y).unwrap();
-                }
+    fn create_image(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        let mut image = ImageBuffer::new(self.get_width() as u32, self.get_height() as u32);
+        for (line_nb, line) in self.0.iter().enumerate() {
+            let y = line_nb * RESOLUTION_Y * INT_SCALE_FACTOR;
+            for (portrait_nb, portrait) in line.iter().enumerate() {
+                let x = portrait_nb * RESOLUTION_X * INT_SCALE_FACTOR;
+                let portrait_rgba = DynamicImage::ImageRgb8(portrait.clone()).into_rgba8();
+                let scaled = resize(
+                    &portrait_rgba,
+                    (RESOLUTION_X * INT_SCALE_FACTOR) as u32,
+                    (RESOLUTION_Y * INT_SCALE_FACTOR) as u32,
+                    FilterType::Nearest,
+                );
+                image.copy_from(&scaled, x as u32, y as u32).unwrap();
             }
         }
+        image
     }
 }
 
-pub fn present_portrait_picture(
-    change: PortraitPicturePresentation,
-) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let mut lines = Vec::new();
-    if change.additions.len() != 0 {
-        lines.push(LineContent::Text("added".into()));
-        for portrait_line in change.additions.chunks(MAX_PORTRAIT_BY_LINE) {
-            lines.push(LineContent::PortraitList(
-                portrait_line.iter().cloned().collect::<Vec<_>>(),
-            ))
-        }
+fn illustration_from_list_of_portrait(portraits: &[PortraitImage], title: String, name_tip: String) -> ChangeIllustration {
+    let portrait_collection: Vec<Vec<PortraitImage>> = portraits
+        .chunks(MAX_PORTRAIT_BY_LINE)
+        .map(|portrait_line| portrait_line.to_vec())
+        .collect::<Vec<_>>();
+    ChangeIllustration {
+        filename_tip: name_tip,
+        title,
+        image: ChangeIllustrationImage::Portraits(PortraitCollection(portrait_collection).create_image()),
+    }
+}
+
+pub fn present_portrait_picture(change: PortraitPicturePresentation, name_tip: String) -> Vec<ChangeIllustration> {
+    let mut illustrations = Vec::new();
+
+    if !change.additions.is_empty() {
+        illustrations.push(illustration_from_list_of_portrait(&change.additions, "added".into(), name_tip.clone()));
     };
 
     if !change.deletions.is_empty() {
-        lines.push(LineContent::Text("deleted".into()));
-        for portrait_line in change.deletions.chunks(MAX_PORTRAIT_BY_LINE) {
-            lines.push(LineContent::PortraitList(
-                portrait_line.iter().cloned().collect::<Vec<_>>(),
-            ));
-        }
+        illustrations.push(illustration_from_list_of_portrait(&change.deletions, "deleted".into(), name_tip.clone()));
     };
 
     if !change.modifications.is_empty() {
-        lines.push(LineContent::Text("changed".into()));
-        for (old, new) in &change.modifications {
-            lines.push(LineContent::PortraitList(vec![old.clone(), new.clone()]));
-        }
+        let mut portrait_collection = PortraitCollection::default();
+
+        for (old_portrait, new_portrait) in change.modifications.into_iter() {
+            portrait_collection.0.push(vec![
+                old_portrait, new_portrait
+            ]);
+        };
+
+        illustrations.push(ChangeIllustration {
+            filename_tip: name_tip.clone(),
+            title: "old -> new".into(),
+            image: ChangeIllustrationImage::Portraits(portrait_collection.create_image()),
+        });
     }
 
-    let width = lines.iter().map(|x| x.get_width()).max().unwrap_or(0);
-    let height: usize = lines.iter().map(|x| x.get_height()).sum();
-
-    let mut result_image = ImageBuffer::new(width as u32, height as u32);
-
-    let mut image_y_position = 0;
-    for line in lines.iter() {
-        line.write_content(image_y_position, &mut result_image);
-        image_y_position += line.get_height() as u32;
-    }
-
-    result_image
+    illustrations
 }
