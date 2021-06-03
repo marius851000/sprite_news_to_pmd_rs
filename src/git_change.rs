@@ -42,7 +42,7 @@ impl Change {
 }
 
 #[derive(Debug, Default)]
-pub struct KindChange<T: PartialEq> {
+pub struct KindChange<T> {
     /// elem 1: name, elem 2: new content
     pub added: Vec<(String, T)>,
     /// elem 1: name, elem 2: old content, elem 3: new content
@@ -51,7 +51,7 @@ pub struct KindChange<T: PartialEq> {
     pub removed: Vec<(String, T)>,
 }
 
-impl<T: PartialEq> KindChange<T> {
+impl<T> KindChange<T> {
     pub fn have_change(&self) -> bool {
         !self.added.is_empty() || !self.changed.is_empty() || !self.removed.is_empty()
     }
@@ -73,6 +73,31 @@ impl<T: PartialEq> KindChange<T> {
             }
         }
         false
+    }
+
+    /// Apply the givent function on all element, returning a new KindChange keeping the same name and position.
+    pub fn map<D, F>(&self, func: F) -> KindChange<D> where
+        F: Fn(&T) -> D
+    {
+        let mut dest: KindChange<D> = KindChange {
+            added: Vec::new(),
+            changed: Vec::new(),
+            removed: Vec::new(),
+        };
+
+        for (name, elem) in &self.added {
+            dest.added.push((name.clone(), func(elem)));
+        };
+
+        for (name, elem_old, elem_new) in &self.changed {
+            dest.changed.push((name.clone(), func(elem_old), func(elem_new)));
+        };
+
+        for (name, elem) in &self.removed {
+            dest.removed.push((name.clone(), func(elem)));
+        };
+
+        dest
     }
 }
 

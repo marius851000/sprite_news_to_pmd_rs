@@ -31,7 +31,7 @@ fn main() {
     );
 
     let o = Output::from_all_change(changes);
-    o.write_to_folder("./test.md".into(), "./images/14-changes".into());
+    o.write_to_folder("./test.md".into(), "./images/all".into());
 }
 
 // TODO: sprite support

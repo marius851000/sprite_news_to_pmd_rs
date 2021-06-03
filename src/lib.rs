@@ -21,3 +21,5 @@ pub use tracker::Tracker;
 
 mod credit;
 pub use credit::Credit;
+
+pub mod sprite;

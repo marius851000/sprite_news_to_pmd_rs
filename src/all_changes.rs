@@ -1,11 +1,8 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    path::{Path, PathBuf},
-};
+use std::{collections::{BTreeMap, HashMap}, io::{Cursor, Write}, path::{Path, PathBuf}};
 
 use git2::{Delta, Oid, Repository, Tree};
 
-use crate::{git_change::SpriteSheetContent, ChangeHistory, Credit, MonsterId, Tracker};
+use crate::{ChangeHistory, Credit, MonsterId, Tracker, git_change::SpriteSheetContent, sprite::AnimData};
 
 #[derive(Default, Debug)]
 pub struct AllChanges {

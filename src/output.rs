@@ -2,10 +2,7 @@ use image::{load_from_memory_with_format, DynamicImage, ImageBuffer, ImageFormat
 use std::{collections::HashSet, fs::create_dir_all, io::Write};
 use std::{fs::File, path::PathBuf};
 
-use crate::{
-    present_portrait_picture, AllChanges, Change, KindChange, MonsterId,
-    PortraitPicturePresentation,
-};
+use crate::{AllChanges, Change, KindChange, MonsterId, PortraitPicturePresentation, present_portrait_picture, sprite::{SpriteSheet, present_sprites_images}};
 
 pub struct ImageStore {
     used_name: HashSet<String>,
@@ -21,7 +18,7 @@ impl ImageStore {
         }
     }
 
-    pub fn add_image(&mut self, image: DynamicImage, name_tip: &str) -> PathBuf {
+    pub fn reserve_file_with_extension(&mut self, name_tip: &str, extension: &str) -> PathBuf {
         let name_tip = if self.used_name.contains(name_tip) {
             let mut id_addition = 0;
             loop {
@@ -35,14 +32,25 @@ impl ImageStore {
         } else {
             name_tip.to_string()
         };
-
         self.used_name.insert(name_tip.to_string());
-        let filename = format!("{}.png", name_tip);
-        let target_file = self.folder.join(filename);
+        let filename = format!("{}{}", name_tip, extension);
+        self.folder.join(filename)
+    }
+
+    pub fn add_image(&mut self, image: DynamicImage, name_tip: &str) -> PathBuf {
+        let target_file = self.reserve_file_with_extension(name_tip, ".png");
         image
             .save_with_format(&target_file, ImageFormat::Png)
             .unwrap();
         target_file
+    }
+
+    pub fn add_spritesheet(&mut self, sprite_sheet: &SpriteSheet, name_tip: &str) -> PathBuf {
+        let target_file = self.reserve_file_with_extension(name_tip, ".png");
+        let mut writer = File::create(&target_file).unwrap();
+        sprite_sheet.write_apng(&mut writer);
+        target_file
+
     }
 }
 
@@ -132,8 +140,10 @@ impl OutputItem {
                 &change,
             );
 
+            let illustrations = present_sprites_images(change.sprites_change.map(SpriteSheet::new_from_change), &monster_id.to_slug());
+
             result.push(OutputItem {
-                illustrations: Vec::new(),
+                illustrations,
                 label: text,
             });
         }
@@ -155,19 +165,29 @@ impl ChangeIllustration {
         md.push_str(&self.title);
         md.push_str("**");
         md.push_str("\n\n");
-        let image = match &self.image {
-            ChangeIllustrationImage::Portraits(image) => DynamicImage::ImageRgba8(image.clone()),
+        match &self.image {
+            ChangeIllustrationImage::Portraits(image) => 
+            {
+                let image = DynamicImage::ImageRgba8(image.clone());
+                let image_path = img_store.add_image(image, &self.filename_tip);
+                md.push_str("  - ![](");
+                md.push_str(image_path.to_str().unwrap());
+                md.push_str(")\n\n");
+            }
+            ChangeIllustrationImage::Sprite(sprite_sheet) => {
+                let image_path = img_store.add_spritesheet(sprite_sheet, &self.filename_tip);
+                md.push_str("  - ![](");
+                md.push_str(image_path.to_str().unwrap());
+                md.push_str(")\n\n");
+            }
         };
-        let image_path = img_store.add_image(image, &self.filename_tip);
-        md.push_str("![](");
-        md.push_str(image_path.to_str().unwrap());
-        md.push_str(")\n\n");
     }
 }
 
 #[derive(Debug)]
 pub enum ChangeIllustrationImage {
     Portraits(ImageBuffer<Rgba<u8>, Vec<u8>>),
+    Sprite(SpriteSheet)
 }
 
 fn generate_text<T: PartialEq>(
