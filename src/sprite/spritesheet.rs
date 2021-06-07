@@ -144,7 +144,7 @@ impl SpriteSheet {
         for (self_dir_anim, other_dir_anim) in self.dir_anims.iter().zip(other.dir_anims.iter()) {
             let mut new_dir_anim = DirAnim::default();
             let max_duration = self_dir_anim.duration().max(other_dir_anim.duration());
-            let mut state = [
+            let mut state: [(_, u32, _); 2] = [
                 (
                     0,
                     self_dir_anim.frames[0].duration,
@@ -163,16 +163,20 @@ impl SpriteSheet {
                 match state[0].1.checked_sub(1) {
                     Some(ok) => state[0].1 = ok,
                     None => {
+                        state[0].0 += 1;
                         should_make_new_frame = true;
-                        state[0].1 = other_dir_anim.frames[state[0].0].duration;
+                        state[0].1 = self_dir_anim.frames[state[0].0].duration;
+                        state[0].2 = &self_dir_anim.frames[state[0].0];
                     }
                 }
 
                 match state[1].1.checked_sub(1) {
                     Some(ok) => state[1].1 = ok,
                     None => {
+                        state[1].0 += 1;
                         should_make_new_frame = true;
                         state[1].1 = other_dir_anim.frames[state[1].0].duration;
+                        state[1].2 = &other_dir_anim.frames[state[1].0];
                     }
                 }
 
