@@ -64,8 +64,9 @@ impl Output {
 
     pub fn render_html(&self, image_store: &mut ImageStore) -> Markup {
         html!(
+            button onclick="unfoldmonster()" { "Open all" }
             @for (key, sections) in &self.out {
-                details {
+                details class="monstergeneral" {
                     summary {
                         //TODO: get the good name
                         b { (key.0) }
@@ -104,8 +105,8 @@ impl OutputItem {
         let mut result = Vec::new();
 
         for (label, content) in &[
-            ("portrait added", &change.portraits_change.added),
-            ("portrait removed", &change.portraits_change.removed),
+            ("Portrait Added", &change.portraits_change.added),
+            ("Portrait Removed", &change.portraits_change.removed),
         ] {
             if !content.is_empty() {
                 result.push(OutputItem {
@@ -124,7 +125,7 @@ impl OutputItem {
 
         if !change.portraits_change.changed.is_empty() {
             result.push(OutputItem {
-                label: "portrait changed".to_string(),
+                label: "Portrait Changed".to_string(),
                 illustrations: ChangeIllustrations::PortraitModification(
                     change
                         .portraits_change
@@ -144,8 +145,8 @@ impl OutputItem {
 
         //TODO: plurial
         for (label, content) in &[
-            ("sprite removed", &change.sprites_change.removed),
-            ("sprite added", &change.sprites_change.added),
+            ("Sprite Removed", &change.sprites_change.removed),
+            ("Sprite Added", &change.sprites_change.added),
         ] {
             if !content.is_empty() {
                 result.push(OutputItem {
@@ -168,7 +169,7 @@ impl OutputItem {
         //TODO: plurial again
         if !change.sprites_change.changed.is_empty() {
             result.push(OutputItem {
-                label: "sprite changed".to_string(),
+                label: "Sprite Changed".to_string(),
                 illustrations: ChangeIllustrations::SpriteModification(
                     change
                         .sprites_change
@@ -191,10 +192,8 @@ impl OutputItem {
 
     pub fn render_html(&self, img_store: &mut ImageStore) -> Markup {
         html! {
-            details open {
-                summary {
-                    (self.label)
-                }
+            (self.label)
+            div class="changetomonsterlist" {
                 (self.illustrations.render_html(img_store))
             }
         }
@@ -216,7 +215,7 @@ impl ChangeIllustrations {
                 html! {
                     div class="contentcontainer" {
                         @for portrait in portraits {
-                            div class="contentiner" {
+                            div class="contentinner" {
                                 span { (portrait.0) }
                                 br;
                                 @let portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
@@ -229,7 +228,7 @@ impl ChangeIllustrations {
             Self::PortraitModification(portraits) => html! {
                 div class="contentcontainer" {
                     @for portrait in portraits {
-                        div class="contentiner" {
+                        div class="contentinner" {
                             span { (portrait.0) }
                             br;
                             @let old_portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
@@ -244,7 +243,7 @@ impl ChangeIllustrations {
             Self::SpriteSingle(sprites) => html! {
                 div class="contentcontainer" {
                     @for sprite in sprites {
-                        div class="contentiner" {
+                        div class="contentinner" {
                             span { (sprite.0) }
                             br;
                             @let sprite_path = image_store.add_spritesheet(&sprite.1.scale(4), "todo"); //TODO:
@@ -256,7 +255,7 @@ impl ChangeIllustrations {
             Self::SpriteModification(sprites) => html! {
                 div class="contentcontainer" {
                     @for (name, old_sprite, new_sprite) in sprites {
-                        div class="contentiner" {
+                        div class="contentinner" {
                             span { (name) }
                             br;
                             @let merged_spritesheet = old_sprite.side_by_side(&new_sprite);
