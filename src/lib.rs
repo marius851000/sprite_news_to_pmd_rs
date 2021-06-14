@@ -1,6 +1,3 @@
-mod portrait_picture;
-pub use portrait_picture::{present_portrait_picture, PortraitPicturePresentation};
-
 mod git_change;
 pub use git_change::{Change, ChangeHistory, KindChange};
 
@@ -21,5 +18,11 @@ pub use tracker::Tracker;
 
 mod credit;
 pub use credit::Credit;
+
+mod imagestore;
+pub use imagestore::ImageStore;
+
+mod portrait;
+pub use portrait::Portrait;
 
 pub mod sprite;

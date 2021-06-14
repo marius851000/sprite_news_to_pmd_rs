@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use maud::{html, Markup};
+
 #[derive(Default)]
 pub struct Credit {
     pub entries: HashMap<String, CreditEntry>,
@@ -55,7 +57,7 @@ impl Credit {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CreditEntry {
     pub name: Option<String>,
     pub contact: Option<String>,
@@ -65,5 +67,31 @@ pub struct CreditEntry {
 impl CreditEntry {
     pub fn new(name: Option<String>, contact: Option<String>, id: String) -> Self {
         Self { name, contact, id }
+    }
+
+    pub fn render_html(&self) -> Markup {
+        let displayed = match &self.name {
+            Some(name) => name.to_string(),
+            None => format!("someone with the discord id {}", self.id),
+        };
+        let contact_url = if let Some(contact) = &self.contact {
+            if contact.starts_with("http") {
+                Some(contact.to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        //TODO: do something when the contact isn't an URL
+        if let Some(contact_url) = contact_url {
+            html! {
+                a href=(contact_url) { (displayed) }
+            }
+        } else {
+            html! {
+                (displayed)
+            }
+        }
     }
 }

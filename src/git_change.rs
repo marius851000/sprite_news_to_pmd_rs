@@ -76,8 +76,9 @@ impl<T> KindChange<T> {
     }
 
     /// Apply the givent function on all element, returning a new KindChange keeping the same name and position.
-    pub fn map<D, F>(&self, func: F) -> KindChange<D> where
-        F: Fn(&T) -> D
+    pub fn map<D, F>(&self, func: F) -> KindChange<D>
+    where
+        F: Fn(&T) -> D,
     {
         let mut dest: KindChange<D> = KindChange {
             added: Vec::new(),
@@ -87,15 +88,16 @@ impl<T> KindChange<T> {
 
         for (name, elem) in &self.added {
             dest.added.push((name.clone(), func(elem)));
-        };
+        }
 
         for (name, elem_old, elem_new) in &self.changed {
-            dest.changed.push((name.clone(), func(elem_old), func(elem_new)));
-        };
+            dest.changed
+                .push((name.clone(), func(elem_old), func(elem_new)));
+        }
 
         for (name, elem) in &self.removed {
             dest.removed.push((name.clone(), func(elem)));
-        };
+        }
 
         dest
     }

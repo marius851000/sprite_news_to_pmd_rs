@@ -1,70 +1,41 @@
-use image::{load_from_memory_with_format, DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
-use std::{collections::HashSet, fs::create_dir_all, io::Write};
+use image::{load_from_memory_with_format, ImageFormat};
+use maud::{html, Markup};
+
+use std::collections::BTreeMap;
+
+use std::io::Write;
+use std::path::Path;
 use std::{fs::File, path::PathBuf};
 
-use crate::{AllChanges, Change, KindChange, MonsterId, PortraitPicturePresentation, present_portrait_picture, sprite::{SpriteSheet, present_sprites_images}};
+use crate::credit::CreditEntry;
+use crate::{sprite::SpriteSheet, AllChanges, Change};
+use crate::{ImageStore, Portrait};
 
-pub struct ImageStore {
-    used_name: HashSet<String>,
-    folder: PathBuf,
-}
-
-impl ImageStore {
-    pub fn new(folder: PathBuf) -> Self {
-        create_dir_all(&folder).unwrap();
-        Self {
-            used_name: HashSet::new(),
-            folder,
-        }
-    }
-
-    pub fn reserve_file_with_extension(&mut self, name_tip: &str, extension: &str) -> PathBuf {
-        let name_tip = if self.used_name.contains(name_tip) {
-            let mut id_addition = 0;
-            loop {
-                let new_name_tip = format!("{}-{}", name_tip, id_addition);
-                if self.used_name.contains(&new_name_tip) {
-                    id_addition += 1;
-                } else {
-                    break new_name_tip;
-                }
-            }
-        } else {
-            name_tip.to_string()
-        };
-        self.used_name.insert(name_tip.to_string());
-        let filename = format!("{}{}", name_tip, extension);
-        self.folder.join(filename)
-    }
-
-    pub fn add_image(&mut self, image: DynamicImage, name_tip: &str) -> PathBuf {
-        let target_file = self.reserve_file_with_extension(name_tip, ".png");
-        image
-            .save_with_format(&target_file, ImageFormat::Png)
-            .unwrap();
-        target_file
-    }
-
-    pub fn add_spritesheet(&mut self, sprite_sheet: &SpriteSheet, name_tip: &str) -> PathBuf {
-        let target_file = self.reserve_file_with_extension(name_tip, ".png");
-        let mut writer = File::create(&target_file).unwrap();
-        sprite_sheet.write_apng(&mut writer);
-        target_file
-
+fn embed_image(path: &Path) -> Markup {
+    html! {
+        img src=(path.to_string_lossy()) {}
     }
 }
 
 #[derive(Debug)]
 pub struct Output {
-    pub out: Vec<OutputItem>,
+    pub out: BTreeMap<(String, Option<CreditEntry>), Vec<OutputItem>>,
 }
 
 impl Output {
     pub fn from_all_change(changes: AllChanges) -> Self {
-        let mut out = Vec::new();
-        for (monster_id, change_history) in changes.changes.iter() {
+        let mut out: BTreeMap<(String, Option<CreditEntry>), Vec<OutputItem>> = BTreeMap::new();
+
+        for (_monster_id, change_history) in changes.changes.iter() {
             for change in &change_history.changes {
-                out.extend(OutputItem::from_change(monster_id, change));
+                let author = &change.author;
+                let identifier_pair = (change.monster_name.clone(), author.clone());
+                let output_item = OutputItem::from_change(&change.monster_name, change);
+                if let Some(already_present) = out.get_mut(&identifier_pair) {
+                    already_present.extend(output_item);
+                } else {
+                    out.insert(identifier_pair, output_item);
+                }
             }
         }
         Self { out }
@@ -73,20 +44,41 @@ impl Output {
     pub fn write_to_folder(&self, text_path: PathBuf, image_path: PathBuf) {
         let mut image_store = ImageStore::new(image_path);
 
-        let mut result_markdown_file = String::new();
+        /*let mut result_markdown_file = String::new();
         for output in &self.out {
             result_markdown_file.push_str("- ");
-            result_markdown_file.push_str(&output.label);
+            // result_markdown_file.push_str(&output.label);
             result_markdown_file.push_str("\n\n");
             for illustration in &output.illustrations {
                 illustration.write(&mut result_markdown_file, &mut image_store);
             }
-        }
+        }*/
+
+        let html = self.render_html(&mut image_store);
 
         let mut text_writer = File::create(&text_path).unwrap();
         text_writer
-            .write_all(result_markdown_file.as_bytes())
+            .write_all(html.into_string().as_bytes())
             .unwrap();
+    }
+
+    pub fn render_html(&self, image_store: &mut ImageStore) -> Markup {
+        html!(
+            @for (key, sections) in &self.out {
+                details {
+                    summary {
+                        //TODO: get the good name
+                        b { (key.0) }
+                        @if let Some(author) = &key.1 {
+                            " by " (author.render_html())
+                        }
+                    }
+                    @for section in sections {
+                        (section.render_html(image_store))
+                    }
+                }
+            }
+        )
     }
 }
 
@@ -94,192 +86,186 @@ impl Output {
 pub struct OutputItem {
     pub label: String,
     // second element is tip for file name
-    pub illustrations: Vec<ChangeIllustration>,
+    pub illustrations: ChangeIllustrations,
+}
+
+fn decode_portrait(binary: &[u8]) -> Portrait {
+    Portrait(
+        load_from_memory_with_format(binary, ImageFormat::Png)
+            .unwrap()
+            .into_rgba8(),
+    )
 }
 
 impl OutputItem {
-    fn from_change(monster_id: &MonsterId, change: &Change) -> Vec<Self> {
+    fn from_change(_monster_name: &str, change: &Change) -> Vec<Self> {
+        //TODO: use the monster id for the image name
+        //TODO: plurial
         let mut result = Vec::new();
-        if change.portraits_change.have_change() {
-            let text = generate_text("portrait", "portraits", &change.portraits_change, &change);
 
-            let presentation = PortraitPicturePresentation {
-                additions: change
-                    .portraits_change
-                    .added
-                    .iter()
-                    .map(|(_, x)| load_png_from_mem(x))
-                    .collect(),
-                modifications: change
-                    .portraits_change
-                    .changed
-                    .iter()
-                    .map(|(_, x, y)| (load_png_from_mem(x), load_png_from_mem(y)))
-                    .collect(),
-                deletions: change
-                    .portraits_change
-                    .removed
-                    .iter()
-                    .map(|(_, x)| load_png_from_mem(x))
-                    .collect(),
-            };
+        for (label, content) in &[
+            ("portrait added", &change.portraits_change.added),
+            ("portrait removed", &change.portraits_change.removed),
+        ] {
+            if !content.is_empty() {
+                result.push(OutputItem {
+                    label: label.to_string(),
+                    illustrations: ChangeIllustrations::PortraitSingle(
+                        content
+                            .into_iter()
+                            .map(|(name, img_binary)| {
+                                (name.to_string(), decode_portrait(img_binary))
+                            })
+                            .collect(),
+                    ),
+                })
+            }
+        }
 
-            let illustrations = present_portrait_picture(presentation, monster_id.to_slug());
-
+        if !change.portraits_change.changed.is_empty() {
             result.push(OutputItem {
-                illustrations,
-                label: text,
+                label: "portrait changed".to_string(),
+                illustrations: ChangeIllustrations::PortraitModification(
+                    change
+                        .portraits_change
+                        .changed
+                        .iter()
+                        .map(|(label, old, new)| {
+                            (
+                                label.to_string(),
+                                decode_portrait(old),
+                                decode_portrait(new),
+                            )
+                        })
+                        .collect(),
+                ),
             })
         };
 
-        if change.sprites_change.have_change() {
-            let text = generate_text(
-                "sprite kind",
-                "sprites kinds",
-                &change.sprites_change,
-                &change,
-            );
+        //TODO: plurial
+        for (label, content) in &[
+            ("sprite removed", &change.sprites_change.removed),
+            ("sprite added", &change.sprites_change.added),
+        ] {
+            if !content.is_empty() {
+                result.push(OutputItem {
+                    label: label.to_string(),
+                    illustrations: ChangeIllustrations::SpriteSingle(
+                        content
+                            .iter()
+                            .map(|(label, spr_sheet_content)| {
+                                (
+                                    label.to_string(),
+                                    SpriteSheet::new_from_change(spr_sheet_content),
+                                )
+                            })
+                            .collect(),
+                    ),
+                })
+            }
+        }
 
-            let illustrations = present_sprites_images(change.sprites_change.map(SpriteSheet::new_from_change), &monster_id.to_slug());
-
+        //TODO: plurial again
+        if !change.sprites_change.changed.is_empty() {
             result.push(OutputItem {
-                illustrations,
-                label: text,
-            });
+                label: "sprite changed".to_string(),
+                illustrations: ChangeIllustrations::SpriteModification(
+                    change
+                        .sprites_change
+                        .changed
+                        .iter()
+                        .map(|(label, old, new)| {
+                            (
+                                label.to_string(),
+                                SpriteSheet::new_from_change(old),
+                                SpriteSheet::new_from_change(new),
+                            )
+                        })
+                        .collect(),
+                ),
+            })
         }
 
         result
     }
-}
 
-#[derive(Debug)]
-pub struct ChangeIllustration {
-    pub filename_tip: String,
-    pub title: String,
-    pub image: ChangeIllustrationImage,
-}
-
-impl ChangeIllustration {
-    pub fn write(&self, md: &mut String, img_store: &mut ImageStore) {
-        md.push_str("  - **");
-        md.push_str(&self.title);
-        md.push_str("**");
-        md.push_str("\n\n");
-        match &self.image {
-            ChangeIllustrationImage::Portraits(image) => 
-            {
-                let image = DynamicImage::ImageRgba8(image.clone());
-                let image_path = img_store.add_image(image, &self.filename_tip);
-                md.push_str("  - ![](");
-                md.push_str(image_path.to_str().unwrap());
-                md.push_str(")\n\n");
+    pub fn render_html(&self, img_store: &mut ImageStore) -> Markup {
+        html! {
+            details open {
+                summary {
+                    (self.label)
+                }
+                (self.illustrations.render_html(img_store))
             }
-            ChangeIllustrationImage::Sprite(sprite_sheet) => {
-                let image_path = img_store.add_spritesheet(sprite_sheet, &self.filename_tip);
-                md.push_str("  - ![](");
-                md.push_str(image_path.to_str().unwrap());
-                md.push_str(")\n\n");
-            }
-        };
+        }
     }
 }
 
 #[derive(Debug)]
-pub enum ChangeIllustrationImage {
-    Portraits(ImageBuffer<Rgba<u8>, Vec<u8>>),
-    Sprite(SpriteSheet)
+pub enum ChangeIllustrations {
+    PortraitSingle(Vec<(String, Portrait)>),
+    PortraitModification(Vec<(String, Portrait, Portrait)>), //old, new
+    SpriteSingle(Vec<(String, SpriteSheet)>),
+    SpriteModification(Vec<(String, SpriteSheet, SpriteSheet)>), //old, news
 }
 
-fn generate_text<T: PartialEq>(
-    singular: &str,
-    plurial: &str,
-    kind: &KindChange<T>,
-    change: &Change,
-) -> String {
-    let author = &change.author;
-    let author_text = if let Some(author) = author {
-        let author_description = if let Some(name) = &author.name {
-            name.to_string()
-        } else {
-            format!("Someone with the (discord) id {}", author.id)
-        };
-        if let Some(contact) = &author.contact {
-            format!("[{}]({})", author_description, contact)
-        } else {
-            author_description
-        }
-    } else {
-        "someone".to_string()
-    };
-
-    let mut change_vec = Vec::new();
-    if !kind.added.is_empty() {
-        change_vec.push(gen_change_text(
-            "added",
-            kind.added.iter().map(|(x, _)| x.to_string()).collect(),
-        ));
-    }
-    if !kind.removed.is_empty() {
-        change_vec.push(gen_change_text(
-            "removed",
-            kind.removed.iter().map(|(x, _)| x.to_string()).collect(),
-        ));
-    }
-    if !kind.changed.is_empty() {
-        change_vec.push(gen_change_text(
-            "changed",
-            kind.changed.iter().map(|(x, _, _)| x.to_string()).collect(),
-        ));
-    }
-
-    let change_vec_len = change_vec.len();
-    let change_text = human_list(change_vec);
-
-    let what_change_text = if change_vec_len == 1 {
-        singular
-    } else {
-        plurial
-    };
-
-    format!(
-        "{} {} {} for {}",
-        author_text, change_text, what_change_text, change.monster_name
-    ) //TODO: link to commit
-}
-
-fn gen_change_text(verb: &str, changes: Vec<String>) -> String {
-    if changes.len() <= 5 {
-        format!("{} the {}", verb, human_list(changes))
-    } else {
-        format!("{} {}", verb, changes.len())
-    }
-}
-
-fn human_list(elements: Vec<String>) -> String {
-    if elements.is_empty() {
-        String::new()
-    } else if elements.len() == 1 {
-        elements.first().unwrap().to_string()
-    } else {
-        let mut result = String::new();
-        for (pos, change) in elements.iter().enumerate() {
-            let pos_to_last = elements.len() - pos - 1;
-            if pos == 0 {
-                result = change.to_string()
-            } else if pos_to_last == 0 {
-                result.push_str(" and ");
-                result.push_str(change);
-            } else {
-                result.push_str(", ");
-                result.push_str(change);
+impl ChangeIllustrations {
+    pub fn render_html(&self, image_store: &mut ImageStore) -> Markup {
+        match self {
+            Self::PortraitSingle(portraits) => {
+                html! {
+                    div class="contentcontainer" {
+                        @for portrait in portraits {
+                            div class="contentiner" {
+                                span { (portrait.0) }
+                                br;
+                                @let portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
+                                (embed_image(&portrait_path))
+                            }
+                        }
+                    }
+                }
             }
+            Self::PortraitModification(portraits) => html! {
+                div class="contentcontainer" {
+                    @for portrait in portraits {
+                        div class="contentiner" {
+                            span { (portrait.0) }
+                            br;
+                            @let old_portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
+                            (embed_image(&old_portrait_path))
+                            br;
+                            @let new_portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
+                            (embed_image(&new_portrait_path))
+                        }
+                    }
+                }
+            },
+            Self::SpriteSingle(sprites) => html! {
+                div class="contentcontainer" {
+                    @for sprite in sprites {
+                        div class="contentiner" {
+                            span { (sprite.0) }
+                            br;
+                            @let sprite_path = image_store.add_spritesheet(&sprite.1.scale(4), "todo"); //TODO:
+                            (embed_image(&sprite_path))
+                        }
+                    }
+                }
+            },
+            Self::SpriteModification(sprites) => html! {
+                div class="contentcontainer" {
+                    @for (name, old_sprite, new_sprite) in sprites {
+                        div class="contentiner" {
+                            span { (name) }
+                            br;
+                            @let merged_spritesheet = old_sprite.side_by_side(&new_sprite);
+                            @let merged_spritesheet_path = image_store.add_spritesheet(&merged_spritesheet.scale(4), "todo"); //TODO:
+                            (embed_image(&merged_spritesheet_path))
+                        }
+                    }
+                }
+            },
         }
-        result
     }
-}
-
-fn load_png_from_mem(i: &[u8]) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
-    load_from_memory_with_format(i, ImageFormat::Png)
-        .unwrap()
-        .into_rgb8()
 }

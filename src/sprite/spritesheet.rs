@@ -1,4 +1,4 @@
-use std::io::{Cursor, Write};
+use std::io::Write;
 
 use apng::{self, load_dynamic_image};
 use image::{
@@ -71,7 +71,8 @@ pub struct SpriteSheet {
 
 impl SpriteSheet {
     pub fn new_from_change(change: &SpriteSheetContent) -> Self {
-        let (animdata_str, invalid_char) = encoding_rs::UTF_8.decode_with_bom_removal(&change.animdata);
+        let (animdata_str, invalid_char) =
+            encoding_rs::UTF_8.decode_with_bom_removal(&change.animdata);
         if invalid_char {
             panic!("Invalid character where found while decoding the xml");
         };

@@ -4,13 +4,13 @@ use serde::Deserialize;
 #[serde(rename_all = "PascalCase")]
 pub struct AnimData {
     pub shadow_size: u32,
-    pub anims: Anims
+    pub anims: Anims,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Anims {
     #[serde(rename = "Anim")]
-    pub anims: Vec<Anim>
+    pub anims: Vec<Anim>,
 }
 
 impl Anims {
@@ -18,7 +18,7 @@ impl Anims {
         for anim in &self.anims {
             if anim.name == name {
                 //TODO: actually follow copy
-                return Some(anim)
+                return Some(anim);
             }
         }
         None
@@ -31,12 +31,11 @@ pub struct Anim {
     pub name: String,
     pub frame_width: Option<u32>,
     pub frame_height: Option<u32>,
-    pub durations: Option<Durations>
+    pub durations: Option<Durations>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Durations {
     #[serde(rename = "Duration")]
-    pub durations: Vec<u32>
+    pub durations: Vec<u32>,
 }
-
