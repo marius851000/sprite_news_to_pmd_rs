@@ -195,9 +195,7 @@ impl SpriteSheet {
                         }
                     }
                 }
-
-                //TODO: handle not the same amount of frame
-
+                
                 if should_make_new_frame {
                     let new_merged_frame = state[0].2.merge_with(state[1].2, old_frame_duration);
                     new_dir_anim.frames.push(new_merged_frame);
