@@ -1,4 +1,4 @@
-use image::{load_from_memory_with_format, ImageFormat};
+use image::{load_from_memory_with_format, ImageFormat, DynamicImage::ImageRgba8};
 use maud::{html, Markup};
 
 use std::collections::BTreeMap;
@@ -11,9 +11,9 @@ use crate::credit::CreditEntry;
 use crate::{sprite::SpriteSheet, AllChanges, Change};
 use crate::{ImageStore, Portrait};
 
-fn embed_image(path: &Path) -> Markup {
+fn embed_image(path: &Path, width: u32, height: u32) -> Markup {
     html! {
-        img src=(path.to_string_lossy()) {}
+        img src=(path.to_string_lossy()) style=(format!("min-width:none;width:{}px;height:{}px", width, height)) {}
     }
 }
 
@@ -200,6 +200,8 @@ impl OutputItem {
     }
 }
 
+const SCALE: u32 = 4;
+
 #[derive(Debug)]
 pub enum ChangeIllustrations {
     PortraitSingle(Vec<(String, Portrait)>),
@@ -218,8 +220,8 @@ impl ChangeIllustrations {
                             div class="contentinner" {
                                 span { (portrait.0) }
                                 br;
-                                @let portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
-                                (embed_image(&portrait_path))
+                                @let portrait_path = image_store.add_image(ImageRgba8(portrait.1.0.clone()), "todo".into()); //TODO:
+                                (embed_image(&portrait_path, 40 * SCALE, 40 * SCALE))
                             }
                         }
                     }
@@ -231,11 +233,11 @@ impl ChangeIllustrations {
                         div class="contentinner" {
                             span { (portrait.0) }
                             br;
-                            @let old_portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
-                            (embed_image(&old_portrait_path))
+                            @let old_portrait_path = image_store.add_image(ImageRgba8(portrait.1.0.clone()), "todo".into()); //TODO:
+                            (embed_image(&old_portrait_path, 40 * SCALE, 40 * SCALE))
                             br;
-                            @let new_portrait_path = image_store.add_image(portrait.1.scale(), "todo".into()); //TODO:
-                            (embed_image(&new_portrait_path))
+                            @let new_portrait_path = image_store.add_image(ImageRgba8(portrait.2.0.clone()), "todo".into()); //TODO:
+                            (embed_image(&new_portrait_path, 40 * SCALE, 40 * SCALE))
                         }
                     }
                 }
@@ -246,8 +248,9 @@ impl ChangeIllustrations {
                         div class="contentinner" {
                             span { (sprite.0) }
                             br;
-                            @let sprite_path = image_store.add_spritesheet(&sprite.1.scale(4), "todo"); //TODO:
-                            (embed_image(&sprite_path))
+                            @let sprite_path = image_store.add_spritesheet(&sprite.1, "todo"); //TODO:
+                            @let size = sprite.1.size();
+                            (embed_image(&sprite_path, size.0 * SCALE, size.1 * SCALE))
                         }
                     }
                 }
@@ -259,8 +262,9 @@ impl ChangeIllustrations {
                             span { (name) }
                             br;
                             @let merged_spritesheet = old_sprite.side_by_side(&new_sprite);
-                            @let merged_spritesheet_path = image_store.add_spritesheet(&merged_spritesheet.scale(4), "todo"); //TODO:
-                            (embed_image(&merged_spritesheet_path))
+                            @let merged_spritesheet_path = image_store.add_spritesheet(&merged_spritesheet, "todo"); //TODO:
+                            @let size = merged_spritesheet.size();
+                            (embed_image(&merged_spritesheet_path, size.0 * SCALE, size.1 * SCALE))
                         }
                     }
                 }

@@ -5,8 +5,36 @@ fn main() {
     let repo = Repository::open("/home/marius/SpriteCollab").expect("can't open the git reppo");
     let changes = get_changes_from_repo(
         &repo,
-        "731aeaf8b957702b3905e279cb8e9a712fd0bfc4",
-        "b37ec5ee90d29fa092ca38ae839168f66506ece3",
+        "584d0d352b93ef0c094c93b9b6cbb232dddd446d",
+        "e67964fdcac3d8b7b9a296def9b6214372165900"
+
+        //"71a0930993985d6c97a68714081f7aa73718eab6",
+        //"d0432785b34eb1d259b3d3d6390417ebfb2caaf7"
+
+        //"46905755e38c7dd4b2bc7121bebc74769a16c539",
+        //"cdc0d166ad65254b5259e3e43a11ec6c34da8463"
+        
+        //"1c2efed111c1f31f157e573ea3e4feb62be8f591",
+        //"d8c862abef79e6fd4688ab1f1fd2433c76ec16fe"
+
+        //"64f05f38d32232b441e3c5fa9b90b26947462828",
+        //"126904fde4c09461b6a75fe321f1231cfa86a035"
+
+//        "68922acddbfba70cb4f927cee820edb77ae13cbd",
+//        "c18e3cb8d0888ba0b6eddb5e20bdd52e5cfef632"
+
+        //"f41703a043716b57f2f3804c528bf60507910066",
+        //"84d1ed61ede968216bed871e2f23e434ccbc50bb"
+
+        //"2bbfbd4ccfdbf5e19949ec0a4fd5b423cdb18af3",
+        //"54a8db1a7588ab2751ce59139112bf3490384d77"
+        
+        //"0ef2d7dc9b286640960de8ffaa5965d10c45f7dc",
+        //"fcc203ea8cc62808ffea4466bdf4565a66f09030"
+        
+        //"731aeaf8b957702b3905e279cb8e9a712fd0bfc4",
+        //"b37ec5ee90d29fa092ca38ae839168f66506ece3",
+        
         //"4af0d7b6f7b32195ad8f6d2079b6b3e2eef6a097",
         //"fa6a78dc40e853f431b82c356001f03133a10fc9",
 
@@ -36,7 +64,7 @@ fn main() {
     );
 
     let o = Output::from_all_change(changes);
-    o.write_to_folder("./test.html".into(), "./images/16-changes".into());
+    o.write_to_folder("./test.html".into(), "./images/26-changes".into());
 }
 
 // TODO: sprite support

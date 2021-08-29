@@ -70,11 +70,16 @@ pub struct SpriteSheet {
 }
 
 impl SpriteSheet {
+
+    pub fn size(&self) -> &(u32, u32) {
+        &self.frame_size
+    }
+    
     pub fn new_from_change(change: &SpriteSheetContent) -> Self {
         let (animdata_str, invalid_char) =
             encoding_rs::UTF_8.decode_with_bom_removal(&change.animdata);
         if invalid_char {
-            panic!("Invalid character where found while decoding the xml");
+            panic!("Invalid character were found while decoding the xml as UTF-8");
         };
         let animdata_global: AnimData = serde_xml_rs::from_str(animdata_str.as_ref()).unwrap();
 
@@ -158,26 +163,36 @@ impl SpriteSheet {
                 ),
             ]; // 1st: the frame number, 2nd: the number of frame before next frame image, 3rd is last remembered object
             let mut old_frame_duration = 0;
-            for _framecount in 0..max_duration {
+            for framecount in 0..max_duration {
                 old_frame_duration += 1;
                 let mut should_make_new_frame = false;
                 match state[0].1.checked_sub(1) {
                     Some(ok) => state[0].1 = ok,
                     None => {
-                        state[0].0 += 1;
                         should_make_new_frame = true;
-                        state[0].1 = self_dir_anim.frames[state[0].0].duration;
-                        state[0].2 = &self_dir_anim.frames[state[0].0];
+                        let potential_new_frame_count = state[0].0 + 1;
+                        if let Some(new_frame) = self_dir_anim.frames.get(potential_new_frame_count) {
+                            state[0].0 += potential_new_frame_count;
+                            state[0].1 = new_frame.duration;
+                            state[0].2 = new_frame;
+                        } else {
+                            state[0].1 = max_duration.wrapping_sub(framecount);
+                        }
                     }
                 }
 
                 match state[1].1.checked_sub(1) {
                     Some(ok) => state[1].1 = ok,
                     None => {
-                        state[1].0 += 1;
                         should_make_new_frame = true;
-                        state[1].1 = other_dir_anim.frames[state[1].0].duration;
-                        state[1].2 = &other_dir_anim.frames[state[1].0];
+                        let potential_new_frame_count = state[1].0 + 1;
+                        if let Some(new_frame) = other_dir_anim.frames.get(potential_new_frame_count) {
+                            state[1].0 += potential_new_frame_count;
+                            state[1].1 = new_frame.duration;
+                            state[1].2 = new_frame;
+                        } else {
+                            state[1].1 = max_duration.wrapping_sub(framecount);
+                        }
                     }
                 }
 
