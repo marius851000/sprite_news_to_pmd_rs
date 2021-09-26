@@ -18,3 +18,4 @@ apng = { git = "https://github.com/marius851000/apng.git", rev="52691704c3d87dfe
 png = "0.16.8"
 encoding_rs = "0.8.28"
 maud = "0.22.2"
+void = "1.0.2"

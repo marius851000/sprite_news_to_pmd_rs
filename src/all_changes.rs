@@ -111,7 +111,7 @@ impl AllChanges {
                             if tracker_entry.portrait_credit.is_empty() {
                                 change.author = None;
                             } else {
-                                change.author = Some(credit.get(&tracker_entry.portrait_credit));
+                                change.author = Some(credit.get(&tracker_entry.portrait_credit.primary));
                             }
                             let portrait_file = repo
                                 .find_blob(reference_file.id())
@@ -156,7 +156,7 @@ impl AllChanges {
                             if tracker_entry.sprite_credit.is_empty() {
                                 change.author = None;
                             } else {
-                                change.author = Some(credit.get(&tracker_entry.sprite_credit));
+                                change.author = Some(credit.get(&tracker_entry.sprite_credit.primary));
                             }
 
                             let reference_sprite = get_sprite_sheet_from_tree(
