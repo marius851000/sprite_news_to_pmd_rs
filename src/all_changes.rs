@@ -1,11 +1,13 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, BTreeSet, HashMap},
     path::{Path, PathBuf},
 };
 
-use git2::{Delta, Oid, Repository, Tree};
+use git2::{Commit, Delta, Oid, Repository, Tree};
 
-use crate::{git_change::SpriteSheetContent, ChangeHistory, Credit, MonsterId, Tracker};
+use crate::{
+    credit::CreditEntry, git_change::SpriteSheetContent, ChangeHistory, Credit, MonsterId, Tracker,
+};
 
 #[derive(Default, Debug)]
 pub struct AllChanges {
@@ -13,7 +15,13 @@ pub struct AllChanges {
 }
 
 impl AllChanges {
-    pub fn add_diff_tree(&mut self, repo: &Repository, old_tree: &Tree, new_tree: &Tree) {
+    pub fn add_diff_tree(
+        &mut self,
+        repo: &Repository,
+        old_tree: &Tree,
+        new_tree: &Tree,
+        commit: &Commit,
+    ) {
         let diff = repo
             .diff_tree_to_tree(Some(old_tree), Some(&new_tree), None)
             .unwrap();
@@ -90,7 +98,7 @@ impl AllChanges {
                     changed_pokemon_path.pop();
                     let monster_id = MonsterId::from_path(&changed_pokemon_path);
 
-                    let tracker_entry = tracker.get_subgroup(&monster_id);
+                    //let tracker_entry = tracker.get_subgroup(&monster_id);
                     let monster_name = tracker.get_monster_name(&monster_id);
 
                     let changed_monster = if let Some(v) = self.changes.get_mut(&monster_id) {
@@ -106,13 +114,25 @@ impl AllChanges {
 
                     let changed_content_name = file_name.split('.').next().unwrap().to_string();
 
+                    let handles_in_commit_message: BTreeSet<CreditEntry> = commit
+                        .message()
+                        .expect("can't decode a commit message")
+                        .split("<@!")
+                        .skip(1)
+                        .map(|part| {
+                            credit.get(&format!(
+                                "<@!{}>",
+                                part.split('>')
+                                    .next()
+                                    .expect("can't parse a Discord handle in a commit message")
+                            ))
+                        })
+                        .collect();
+
                     match change_is_on {
                         "portrait" => {
-                            if tracker_entry.portrait_credit.is_empty() {
-                                change.author = None;
-                            } else {
-                                change.author = Some(credit.get(&tracker_entry.portrait_credit.primary));
-                            }
+                            change.authors = handles_in_commit_message;
+
                             let portrait_file = repo
                                 .find_blob(reference_file.id())
                                 .expect("can't get a portrait blob")
@@ -153,11 +173,7 @@ impl AllChanges {
                                 continue;
                             }
 
-                            if tracker_entry.sprite_credit.is_empty() {
-                                change.author = None;
-                            } else {
-                                change.author = Some(credit.get(&tracker_entry.sprite_credit.primary));
-                            }
+                            change.authors = handles_in_commit_message;
 
                             let reference_sprite = get_sprite_sheet_from_tree(
                                 &repo,

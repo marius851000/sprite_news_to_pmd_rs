@@ -3,6 +3,7 @@ use maud::{html, Markup};
 
 use std::collections::BTreeMap;
 
+use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::Path;
 use std::{fs::File, path::PathBuf};
@@ -19,17 +20,17 @@ fn embed_image(path: &Path, width: u32, height: u32) -> Markup {
 
 #[derive(Debug)]
 pub struct Output {
-    pub out: BTreeMap<(String, Option<CreditEntry>), Vec<OutputItem>>,
+    pub out: BTreeMap<(String, BTreeSet<CreditEntry>), Vec<OutputItem>>,
 }
 
 impl Output {
     pub fn from_all_change(changes: AllChanges) -> Self {
-        let mut out: BTreeMap<(String, Option<CreditEntry>), Vec<OutputItem>> = BTreeMap::new();
+        let mut out: BTreeMap<(String, BTreeSet<CreditEntry>), Vec<OutputItem>> = BTreeMap::new();
 
         for (_monster_id, change_history) in changes.changes.iter() {
             for change in &change_history.changes {
-                let author = &change.author;
-                let identifier_pair = (change.monster_name.clone(), author.clone());
+                let authors = &change.authors;
+                let identifier_pair = (change.monster_name.clone(), authors.clone());
                 let output_item = OutputItem::from_change(&change.monster_name, change);
                 if let Some(already_present) = out.get_mut(&identifier_pair) {
                     already_present.extend(output_item);
@@ -68,10 +69,18 @@ impl Output {
             @for (key, sections) in &self.out {
                 details class="monstergeneral" {
                     summary {
-                        //TODO: get the good name
                         b { (key.0) }
-                        @if let Some(author) = &key.1 {
-                            " by " (author.render_html())
+                        @if !key.1.is_empty() {
+                            " by "
+                            @for (remaining, author) in key.1.iter().enumerate().rev() {
+                                (author.render_html())
+                                @if remaining > 1 {
+                                    ", "
+                                }
+                                @if remaining == 1 {
+                                    " and "
+                                }
+                            }
                         }
                     }
                     @for section in sections {

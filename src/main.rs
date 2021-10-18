@@ -5,11 +5,20 @@ fn main() {
     let repo = Repository::open("/home/marius/SpriteCollab").expect("can't open the git reppo");
     let changes = get_changes_from_repo(
         &repo,
-        "9080e628c459b874eb212c6bfa252ad279665c6d",
-        "9080e628c459b874eb212c6bfa252ad279665c6d"
+        "4bf1242e9b0eafaeae79253b9ce57a546b7ec023",
+        "792f01d6719e5ae28dcc11d58583c5203e20667b"
+        //"db6eda96394f1c5bee06cfa569ca322786efc1ec",
+        //"4e963a5efc7ce34ffca0db1974b1aebe1ea8b000"
+
+        //"da4dc2788be13f9e6950790c89ef76ad0d0e2d4f",
+        //"6447721ac97ea79dc65848a676702795742358f5"
+        
+        //"116e3d91c128bba62ecde7f0f24909ac52a514b6",
+        //"9080e628c459b874eb212c6bfa252ad279665c6d"
 
         //"f578aea5dfb592a7a3767e034fabe2723d4a44ec",
         //"5bec7a69d665cd51abde161db8ec81509a754cb7"
+
         //"f1027ec6728ea5c31546fdcc833dfb0c7b06871a",
         //"a0ba39497633fae2233ac6a5b9db44706c6753f8"
         //"771ebb2865abd3775d199710b573d92c776e57a8",
@@ -70,8 +79,13 @@ fn main() {
         //        "ed8ad4a4449c101b0248ed47022444f54b67b7e9",
     );
 
-    let o = Output::from_all_change(changes);
-    o.write_to_folder("./test.html".into(), "./images/30-changes".into());
-}
+    /*let repo = Repository::open("/home/marius/NotSpriteCollab").expect("can't open the git reppo");
+    let changes = get_changes_from_repo(
+        &repo,
+        "86de4b08224587176d20f48b4e0c42c763ca6495",
+        "090f46daa46bf781bd317e4213ceb5c0c5dd64b8"
+    );*/
 
-// TODO: sprite support
+    let o = Output::from_all_change(changes);
+    o.write_to_folder("./test.html".into(), "./images/34-changes".into());
+}

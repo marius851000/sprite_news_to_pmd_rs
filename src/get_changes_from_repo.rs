@@ -44,7 +44,7 @@ pub fn get_changes_from_repo(
             .parent(0)
             .unwrap_or_else(|_| panic!("can't get the unique parent of commit {}", commit.id()));
 
-        changes.add_diff_tree(repo, &get_tree(&commit_parent), &get_tree(&commit));
+        changes.add_diff_tree(repo, &get_tree(&commit_parent), &get_tree(&commit), &commit);
 
         if commit.id() == older_rev.id() {
             break;

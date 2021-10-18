@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use git2::Oid;
 
 use crate::credit::CreditEntry;
@@ -22,7 +24,7 @@ impl ChangeHistory {
 
 #[derive(Debug)]
 pub struct Change {
-    pub author: Option<CreditEntry>,
+    pub authors: BTreeSet<CreditEntry>,
     pub monster_name: String,
     pub commit_ref: Oid,
     pub portraits_change: KindChange<Vec<u8>>,
@@ -32,7 +34,7 @@ pub struct Change {
 impl Change {
     fn new(commit_ref: Oid, monster_name: String) -> Self {
         Self {
-            author: None,
+            authors: BTreeSet::new(),
             monster_name,
             commit_ref,
             portraits_change: KindChange::default(),

@@ -38,13 +38,18 @@ impl Credit {
             let contact = option_from_string(
                 line_splited
                     .next()
-                    .expect("can't get the contact for a credit entry"),
+                    .expect("can't get the contact information for a credit entry"),
             );
             result.entries.insert(
                 id.to_string(),
                 CreditEntry::new(name, contact, id.to_string()),
             );
-        }
+        };
+        result.entries.insert("<@!388753676140806175>".into(), CreditEntry {
+            name: Some("fledermaus".into()),
+            contact: Some("https://www.furaffinity.net/user/fleder-maus/".into()),
+            id: "<@!388753676140806175>".into(),
+        });
         result
     }
 
