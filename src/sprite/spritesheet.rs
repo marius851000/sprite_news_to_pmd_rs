@@ -46,7 +46,7 @@ impl Frame {
 
 #[derive(Default, Debug, Clone)]
 pub struct DirAnim {
-    frames: Vec<Frame>,
+    pub frames: Vec<Frame>,
 }
 
 impl DirAnim {
@@ -65,12 +65,11 @@ impl DirAnim {
 
 #[derive(Debug, Clone)]
 pub struct SpriteSheet {
-    dir_anims: Vec<DirAnim>,
+    pub dir_anims: Vec<DirAnim>,
     frame_size: (u32, u32),
 }
 
 impl SpriteSheet {
-
     pub fn size(&self) -> &(u32, u32) {
         &self.frame_size
     }
@@ -125,8 +124,6 @@ impl SpriteSheet {
             result.dir_anims.push(anim);
         }
 
-        let mut f = std::fs::File::create("./test.png").unwrap();
-        result.write_apng(&mut f);
         result
     }
 

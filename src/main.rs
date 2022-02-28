@@ -5,8 +5,56 @@ fn main() {
     let repo = Repository::open("/home/marius/SpriteCollab").expect("can't open the git reppo");
     let changes = get_changes_from_repo(
         &repo,
-        "4bf1242e9b0eafaeae79253b9ce57a546b7ec023",
-        "792f01d6719e5ae28dcc11d58583c5203e20667b"
+        //debug:
+        //"9ed8689c94191326dcc10cdef592a33cb8f8c7fe",
+        //"9ed8689c94191326dcc10cdef592a33cb8f8c7fe"
+
+        //week 50-53
+        "dc2b754da7cc81102f977b1fc201d5e5c16c64d0",
+        "795c7a6689194b8287040f5863d9c7c1003e12eb"
+
+        //"9141d52cc91784f3371c3b6db8844031f145fbb9",
+        //"f2ee0227b69cb46955721760276e14f84fd288ef"
+        
+        //"40dd27790eac5288d8393124d815ba135a2568ec",
+        //"447949733907e267377c39bd9b4e6bf2a277ae3e"
+        
+        //"cc5dbad93576a9cfd4f2530e39f0ec056c1daa9e",
+        //"eb8b910f2421ce30ed3be52fc81ffbed4e8a9e8e"
+        
+        //"ba8f7867b66c332f305fb80272985223e5868059",
+        //"32fb6fb6f942de5752f3ec5e58b9132ab85b9ef8"
+        
+        //"787d3933b60f674a8715d1d112e1fc0d1286d5aa",
+        //"d6dac58fd7d7f72958460b10478350ea6c5d1b89"
+
+        //"cd26209f06c1b72ad0a6642a840fa457df544e19",
+        //"7cb0e5a5a1f13e07f73a4d2ca229f925e00dae06"
+
+        //"c1bdbbfe37d8e7624f9dad9a625897392e696b5c",
+        //"ab618a8f56b3ac8ee803fa481f09247286e4c785"
+
+        //"00a7ce0810f3f4a3259557616bdb9290f5940065",
+        //"d163c00b3ff1e9ac73f0f20aeda7f680dc395677"
+
+        //"8899d343d1bece70a3a8fa1bf7b08ebccfb7a858",
+        //"df98c36a548336a944165a6a9f0e2615c00fa1c0"
+
+        //"e6c897e2b7c6c285433eaa9d2fa644dff793e9ab", 
+        //"7ec8d4a4929d9b11e883559cb642db52460481db"
+        
+        //"403d8a71a94f94c9355a9122cce4632b78a8631b",
+        //"18b2ce890d9a1550c8289706483b9824d6f4161d"
+        
+        //"e052579b80d7a47b4cad3291c59affe539e9e804",
+        //"26d33ef0c84376b567d9b0da16f1541b927c8bad"
+
+        //"e1dc98fa6886f4001e5baa3bcb735fc2b56052ba",
+        //"408c4c7b5d99d087f72484103d11cbcd301b2607"
+        
+        //"4bf1242e9b0eafaeae79253b9ce57a546b7ec023",
+        //"792f01d6719e5ae28dcc11d58583c5203e20667b"
+        
         //"db6eda96394f1c5bee06cfa569ca322786efc1ec",
         //"4e963a5efc7ce34ffca0db1974b1aebe1ea8b000"
 
@@ -87,5 +135,5 @@ fn main() {
     );*/
 
     let o = Output::from_all_change(changes);
-    o.write_to_folder("./test.html".into(), "./images/34-changes".into());
+    o.write_to_folder("./test.html".into(), "./changes/50-53-changes".into());
 }

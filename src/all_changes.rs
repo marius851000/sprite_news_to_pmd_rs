@@ -22,6 +22,10 @@ impl AllChanges {
         new_tree: &Tree,
         commit: &Commit,
     ) {
+        if commit.message().expect("can't read the commit message").contains("Merge branch") {
+            return
+        };
+
         let diff = repo
             .diff_tree_to_tree(Some(old_tree), Some(&new_tree), None)
             .unwrap();
@@ -210,7 +214,7 @@ impl AllChanges {
                         _ => panic!(),
                     };
                 }
-                "tracker.json" | "credit_names.txt" => {}
+                "tracker.json" | "credit_names.txt" | "README.md" | "sprite_config.json" => {}
                 root_folder => panic!("unknown root file/folder: {:?}", root_folder),
             }
         }

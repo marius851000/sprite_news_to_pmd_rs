@@ -1,5 +1,5 @@
 mod git_change;
-pub use git_change::{Change, ChangeHistory, KindChange};
+pub use git_change::{Change, ChangeHistory, KindChange, SpriteSheetContent};
 
 mod get_changes_from_repo;
 pub use get_changes_from_repo::get_changes_from_repo;

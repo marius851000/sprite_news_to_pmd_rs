@@ -77,7 +77,7 @@ impl<T> KindChange<T> {
         false
     }
 
-    /// Apply the givent function on all element, returning a new KindChange keeping the same name and position.
+    /// Apply the given function on all element, returning a new KindChange keeping the same name and position.
     pub fn map<D, F>(&self, func: F) -> KindChange<D>
     where
         F: Fn(&T) -> D,
