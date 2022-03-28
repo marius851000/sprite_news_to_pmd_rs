@@ -73,7 +73,7 @@ impl SpriteSheet {
     pub fn size(&self) -> &(u32, u32) {
         &self.frame_size
     }
-    
+
     pub fn new_from_change(change: &SpriteSheetContent) -> Self {
         let (animdata_str, invalid_char) =
             encoding_rs::UTF_8.decode_with_bom_removal(&change.animdata);
@@ -168,7 +168,8 @@ impl SpriteSheet {
                     None => {
                         should_make_new_frame = true;
                         let potential_new_frame_count = state[0].0 + 1;
-                        if let Some(new_frame) = self_dir_anim.frames.get(potential_new_frame_count) {
+                        if let Some(new_frame) = self_dir_anim.frames.get(potential_new_frame_count)
+                        {
                             state[0].0 += potential_new_frame_count;
                             state[0].1 = new_frame.duration;
                             state[0].2 = new_frame;
@@ -183,7 +184,9 @@ impl SpriteSheet {
                     None => {
                         should_make_new_frame = true;
                         let potential_new_frame_count = state[1].0 + 1;
-                        if let Some(new_frame) = other_dir_anim.frames.get(potential_new_frame_count) {
+                        if let Some(new_frame) =
+                            other_dir_anim.frames.get(potential_new_frame_count)
+                        {
                             state[1].0 += potential_new_frame_count;
                             state[1].1 = new_frame.duration;
                             state[1].2 = new_frame;
@@ -192,7 +195,7 @@ impl SpriteSheet {
                         }
                     }
                 }
-                
+
                 if should_make_new_frame {
                     let new_merged_frame = state[0].2.merge_with(state[1].2, old_frame_duration);
                     new_dir_anim.frames.push(new_merged_frame);

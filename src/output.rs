@@ -1,4 +1,4 @@
-use image::{load_from_memory_with_format, ImageFormat, DynamicImage::ImageRgba8};
+use image::{load_from_memory_with_format, DynamicImage::ImageRgba8, ImageFormat};
 use maud::{html, Markup};
 
 use std::collections::BTreeMap;
@@ -27,16 +27,14 @@ impl Output {
     pub fn from_all_change(changes: AllChanges) -> Self {
         let mut out: BTreeMap<(String, BTreeSet<CreditEntry>), Vec<OutputItem>> = BTreeMap::new();
 
-        for (_monster_id, change_history) in changes.changes.iter() {
-            for change in &change_history.changes {
-                let authors = &change.authors;
-                let identifier_pair = (change.monster_name.clone(), authors.clone());
-                let output_item = OutputItem::from_change(&change.monster_name, change);
-                if let Some(already_present) = out.get_mut(&identifier_pair) {
-                    already_present.extend(output_item);
-                } else {
-                    out.insert(identifier_pair, output_item);
-                }
+        for (_monster_id, change) in changes.changes.iter() {
+            let authors = &change.authors;
+            let identifier_pair = (change.monster_name.clone(), authors.clone());
+            let output_item = OutputItem::from_change(&change.monster_name, change);
+            if let Some(already_present) = out.get_mut(&identifier_pair) {
+                already_present.extend(output_item);
+            } else {
+                out.insert(identifier_pair, output_item);
             }
         }
         Self { out }

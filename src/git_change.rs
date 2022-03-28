@@ -1,42 +1,24 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use git2::Oid;
 
-use crate::credit::CreditEntry;
-
-#[derive(Default, Debug)]
-pub struct ChangeHistory {
-    pub changes: Vec<Change>,
-}
-
-impl ChangeHistory {
-    pub fn get_or_insert_mut(&mut self, id: &Oid, monster_name: String) -> &mut Change {
-        for (change_id, change) in self.changes.iter().enumerate() {
-            if &change.commit_ref == id {
-                return self.changes.get_mut(change_id).unwrap();
-            }
-        }
-        let new_position = self.changes.len();
-        self.changes.push(Change::new(*id, monster_name));
-        return self.changes.get_mut(new_position).unwrap();
-    }
-}
+use crate::{credit::CreditEntry, MonsterId};
 
 #[derive(Debug)]
 pub struct Change {
     pub authors: BTreeSet<CreditEntry>,
     pub monster_name: String,
-    pub commit_ref: Oid,
+    pub old_credit: Option<BTreeSet<CreditEntry>>,
     pub portraits_change: KindChange<Vec<u8>>,
     pub sprites_change: KindChange<SpriteSheetContent>,
 }
 
 impl Change {
-    fn new(commit_ref: Oid, monster_name: String) -> Self {
+    pub fn new(monster_name: String) -> Self {
         Self {
             authors: BTreeSet::new(),
             monster_name,
-            commit_ref,
+            old_credit: None,
             portraits_change: KindChange::default(),
             sprites_change: KindChange::default(),
         }
@@ -58,7 +40,7 @@ impl<T> KindChange<T> {
         !self.added.is_empty() || !self.changed.is_empty() || !self.removed.is_empty()
     }
 
-    pub fn already_handled(&self, id: &str) -> bool {
+    fn already_handled(&self, id: &str) -> bool {
         for (name, _) in &self.added {
             if name == id {
                 return true;

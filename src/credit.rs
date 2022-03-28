@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use maud::{html, Markup};
 
 #[derive(Default)]
-pub struct Credit {
+pub struct GlobalCredit {
     pub entries: HashMap<String, CreditEntry>,
 }
 
@@ -15,9 +15,9 @@ fn option_from_string(s: &str) -> Option<String> {
     }
 }
 
-impl Credit {
+impl GlobalCredit {
     pub fn new_from_file(file_content: &str) -> Self {
-        let mut result = Credit::default();
+        let mut result = GlobalCredit::default();
         let mut line_iterator = file_content.split('\n');
         line_iterator
             .next()
@@ -44,12 +44,15 @@ impl Credit {
                 id.to_string(),
                 CreditEntry::new(name, contact, id.to_string()),
             );
-        };
-        result.entries.insert("<@!388753676140806175>".into(), CreditEntry {
-            name: Some("fledermaus".into()),
-            contact: Some("https://www.furaffinity.net/user/fleder-maus/".into()),
-            id: "<@!388753676140806175>".into(),
-        });
+        }
+        result.entries.insert(
+            "<@!388753676140806175>".into(),
+            CreditEntry {
+                name: Some("fledermaus".into()),
+                contact: Some("https://www.furaffinity.net/user/fleder-maus/".into()),
+                id: "<@!388753676140806175>".into(),
+            },
+        );
         result
     }
 
@@ -98,5 +101,29 @@ impl CreditEntry {
                 (displayed)
             }
         }
+    }
+}
+
+pub struct SingleMonsterCredit {
+    pub credits: BTreeSet<String>,
+}
+
+impl SingleMonsterCredit {
+    pub fn new_from_file(file_content: &str) -> Self {
+        let mut credits = BTreeSet::new();
+        for line in file_content.split("\n") {
+            if line == "" {
+                continue;
+            }
+            let mut line_iter = line.split('\t');
+            line_iter
+                .next()
+                .expect("can't get the first part of a line of a monster credit");
+            let id = line_iter
+                .next()
+                .expect("can't get the second part of a line of a monster credit");
+            credits.insert(id.to_string());
+        }
+        Self { credits }
     }
 }

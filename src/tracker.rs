@@ -1,6 +1,9 @@
 use std::{collections::HashMap, fmt, marker::PhantomData, str::FromStr};
 
-use serde::{Deserialize, Deserializer, de::{self, MapAccess, Visitor}};
+use serde::{
+    de::{self, MapAccess, Visitor},
+    Deserialize, Deserializer,
+};
 use void::Void;
 
 use crate::MonsterId;
@@ -18,16 +21,29 @@ impl Tracker {
         current
     }
 
-    pub fn get_monster_name(&self, monster_id: &MonsterId) -> String {
+    pub fn get_monster_name(&self, monster_id: &MonsterId) -> Option<String> {
         let mut part_iter = monster_id.path.iter();
-        let mut current = self.0.get(part_iter.next().unwrap()).unwrap();
+        let first_path_segment = if let Some(first_path_segment) = part_iter.next() {
+            first_path_segment
+        } else {
+            return None;
+        };
+        let mut current = if let Some(r) = self.0.get(first_path_segment) {
+            r
+        } else {
+            return None;
+        };
         let mut result = current.name.clone();
         for part in part_iter {
-            current = current.subgroups.0.get(part).unwrap();
+            current = if let Some(r) = current.subgroups.0.get(part) {
+                r
+            } else {
+                return None;
+            };
             result.push(' ');
             result.push_str(&current.name);
         }
-        result
+        Some(result)
     }
 }
 
@@ -53,14 +69,13 @@ impl Credit {
     }
 }
 
-
 impl FromStr for Credit {
     type Err = Void;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Credit {
             primary: s.into(),
-            secondary: Vec::new()
+            secondary: Vec::new(),
         })
     }
 }

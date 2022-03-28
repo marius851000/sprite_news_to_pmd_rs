@@ -2,16 +2,41 @@ use git2::Repository;
 use sprite_news_presentation::{get_changes_from_repo, Output};
 
 fn main() {
+    //TODO: only auto-hide shiny
     let repo = Repository::open("/home/marius/SpriteCollab").expect("can't open the git reppo");
     let changes = get_changes_from_repo(
         &repo,
-        //debug:
-        //"9ed8689c94191326dcc10cdef592a33cb8f8c7fe",
-        //"9ed8689c94191326dcc10cdef592a33cb8f8c7fe"
+        //week 57 - notspritecollab
+        //"c3b51a3c626a4c2284e7b67274bca0f2e1adad51",
+        //"42fa39605e0e833f60f08ab2cc59a8c01cd91447"
+        
+        //week 57 - spritecollab
+        "ab8d86569b3c50ecc8331a6f8bffd938f64288f2",
+        "83b733e0bed6c0a6b56b272cf9d9b9e573db490f"
+        
+        //week 56 - notspritecollab
+        //"f9e2c93f96482dc4362be4d787fd4d18748fdadb",
+        //"0421c4e11c067d68f07d87f3089aaec7bf2aac20"
+
+        //week 56 - spritecollab
+        //"6e316ebde88c4a1974699f732b83d78e13f17176",
+        //"44035816d2f5ced2338bef9bead3de8b0ddd0fd3"
+
+        //week 55 - spritecollab
+        //"00a5ccdf62eabb0b8dff8e2df0c123baf54eee07",
+        //"df51b713125527b4c99e6b7b2c7517dceb23b12e"
+
+        //week 54 - notspritecollab
+        //"994d609e9e74f6a7bbecee909efa6a88f3ed3acb",
+        //"648dd991bf69a8dbf35f52c7a8acdc0c0b194262"
+        
+        //week 54
+        //"4a93ccfa5a4b31517d33a45f3822fc5aff1f4830",
+        //"545489a9b40ad950efafe30c102ba0ae4ec282c2"
 
         //week 50-53
-        "dc2b754da7cc81102f977b1fc201d5e5c16c64d0",
-        "795c7a6689194b8287040f5863d9c7c1003e12eb"
+        //"dc2b754da7cc81102f977b1fc201d5e5c16c64d0",
+        //"795c7a6689194b8287040f5863d9c7c1003e12eb"
 
         //"9141d52cc91784f3371c3b6db8844031f145fbb9",
         //"f2ee0227b69cb46955721760276e14f84fd288ef"
@@ -135,5 +160,5 @@ fn main() {
     );*/
 
     let o = Output::from_all_change(changes);
-    o.write_to_folder("./test.html".into(), "./changes/50-53-changes".into());
+    o.write_to_folder("./test.html".into(), "./changes/57-changes-spritecollab".into());
 }

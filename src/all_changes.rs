@@ -6,70 +6,75 @@ use std::{
 use git2::{Commit, Delta, Oid, Repository, Tree};
 
 use crate::{
-    credit::CreditEntry, git_change::SpriteSheetContent, ChangeHistory, Credit, MonsterId, Tracker,
+    credit::CreditEntry, git_change::SpriteSheetContent, tracker::Credit, Change, GlobalCredit,
+    MonsterId, SingleMonsterCredit, Tracker,
 };
 
 #[derive(Default, Debug)]
 pub struct AllChanges {
-    pub changes: BTreeMap<MonsterId, ChangeHistory>,
+    pub changes: BTreeMap<MonsterId, Change>,
 }
 
 impl AllChanges {
-    pub fn add_diff_tree(
+    pub fn get_or_insert_mut(
         &mut self,
-        repo: &Repository,
-        old_tree: &Tree,
-        new_tree: &Tree,
-        commit: &Commit,
-    ) {
-        if commit.message().expect("can't read the commit message").contains("Merge branch") {
-            return
+        monster_id: MonsterId,
+        monster_name: String,
+    ) -> &mut Change {
+        let entry = self
+            .changes
+            .entry(monster_id)
+            .or_insert_with(move || Change::new(monster_name));
+        entry
+    }
+}
+
+fn get_blob(repo: &Repository, tree: &Tree, path: &Path) -> Option<Vec<u8>> {
+    if let Ok(r) = repo.find_blob(tree.get_path(path).unwrap().id()) {
+        Some(r.content().to_vec())
+    } else {
+        None
+    }
+}
+
+impl AllChanges {
+    pub fn new_from_diff_in_tree(repo: &Repository, old_tree: &Tree, new_tree: &Tree) -> Self {
+        let mut result = Self {
+            changes: BTreeMap::new(),
         };
 
         let diff = repo
             .diff_tree_to_tree(Some(old_tree), Some(&new_tree), None)
             .unwrap();
 
-        let credit = Credit::new_from_file(
+        let new_global_credit = GlobalCredit::new_from_file(
             &String::from_utf8(
-                repo.find_blob(
-                    new_tree
-                        .get_path(&PathBuf::from("credit_names.txt"))
-                        .unwrap()
-                        .id(),
-                )
-                .unwrap()
-                .content()
-                .to_vec(),
+                get_blob(&repo, &new_tree, &PathBuf::from("credit_names.txt")).unwrap(),
             )
             .unwrap(),
         );
 
-        let mut tracker_cache: HashMap<Oid, Tracker> = HashMap::new();
+        let old_global_credit = GlobalCredit::new_from_file(
+            &String::from_utf8(
+                get_blob(&repo, &old_tree, &PathBuf::from("credit_names.txt")).unwrap(),
+            )
+            .unwrap(),
+        );
+
+        let new_tracker: Tracker = serde_json::from_slice(
+            &get_blob(&repo, &new_tree, &PathBuf::from("tracker.json")).unwrap(),
+        )
+        .unwrap();
+        let old_tracker: Tracker = serde_json::from_slice(
+            &get_blob(&repo, &old_tree, &PathBuf::from("tracker.json")).unwrap(),
+        )
+        .unwrap();
 
         for delta in diff.deltas() {
             let (reference_file, reference_tree) = if delta.status() == Delta::Deleted {
                 (delta.old_file(), old_tree)
             } else {
                 (delta.new_file(), new_tree)
-            };
-
-            let tracker = if let Some(tracker) = tracker_cache.get(&reference_tree.id()) {
-                tracker
-            } else {
-                let tracker: Tracker = serde_json::from_slice(
-                    repo.find_blob(
-                        reference_tree
-                            .get_path(&PathBuf::from("tracker.json"))
-                            .unwrap()
-                            .id(),
-                    )
-                    .unwrap()
-                    .content(),
-                )
-                .unwrap();
-                tracker_cache.insert(reference_tree.id(), tracker);
-                tracker_cache.get(&reference_tree.id()).unwrap()
             };
 
             let path = reference_file
@@ -92,51 +97,84 @@ impl AllChanges {
 
             let file_name = path.iter().last().unwrap().to_string_lossy().to_string();
 
-            if file_name == "credits.txt" {
-                continue;
-            };
-
+            //TODO: handle crediting changes
             match change_is_on {
                 "portrait" | "sprite" => {
+                    //TODO: this is done to ensure that no animation change get credited thrice. Should be changed to a proper format, that check if the change has already been added previously
+                    let mut change_folder = path.to_path_buf();          
+                    change_folder.pop();
+
                     let mut changed_pokemon_path = path.iter().skip(1).collect::<PathBuf>();
                     changed_pokemon_path.pop();
+
                     let monster_id = MonsterId::from_path(&changed_pokemon_path);
 
-                    //let tracker_entry = tracker.get_subgroup(&monster_id);
-                    let monster_name = tracker.get_monster_name(&monster_id);
-
-                    let changed_monster = if let Some(v) = self.changes.get_mut(&monster_id) {
-                        v
-                    } else {
-                        self.changes
-                            .insert(monster_id.clone(), ChangeHistory::default());
-                        self.changes.get_mut(&monster_id).unwrap()
-                    };
-
                     let oid = reference_tree.id();
-                    let change = changed_monster.get_or_insert_mut(&oid, monster_name);
+
+                    let (tracker_to_use, monster_name) =
+                        if let Some(name) = new_tracker.get_monster_name(&monster_id) {
+                            (&new_tracker, name)
+                        } else if let Some(name) = old_tracker.get_monster_name(&monster_id) {
+                            (&old_tracker, name)
+                        } else {
+                            println!(
+                                "Can't find the monster with the id {:?}, present in tree id {}",
+                                monster_id, oid
+                            );
+                            continue;
+                        };
+
+                    // CREDIT HANDLING
+
+                    let change = result.get_or_insert_mut(monster_id, monster_name);
+
+                    if change.authors.is_empty() {
+                        // use the newest credit if avalaible. If it isn't in the newest credit, then it has been deleted.
+                        let (monster_credit_to_use, global_credit_to_use) =
+                            if let Some(new_monster_credit_blob) =
+                                get_blob(repo, &reference_tree, &change_folder.join("credits.txt"))
+                            {
+                                (
+                                    SingleMonsterCredit::new_from_file(
+                                        &String::from_utf8(new_monster_credit_blob).unwrap(),
+                                    ),
+                                    &new_global_credit,
+                                )
+                            } else {
+                                let monster_credit_blob =
+                                    get_blob(repo, &old_tree, &change_folder.join("credits.txt"))
+                                        .unwrap();
+                                (
+                                    SingleMonsterCredit::new_from_file(
+                                        &String::from_utf8(monster_credit_blob).unwrap(),
+                                    ),
+                                    &old_global_credit,
+                                )
+                            };
+
+                        for author_id in &monster_credit_to_use.credits {
+                            change.authors.insert(
+                                if let Some(author) = global_credit_to_use.entries.get(author_id) {
+                                    author.clone()
+                                } else {
+                                    CreditEntry::new(None, None, author_id.clone())
+                                },
+                            );
+                        }
+                    }
+
+                    if path
+                        .file_name()
+                        .expect("can't get the filename for a portrait/sprite change")
+                        == "credits.txt"
+                    {
+                        continue; //TODO: implement credits change
+                    }
 
                     let changed_content_name = file_name.split('.').next().unwrap().to_string();
 
-                    let handles_in_commit_message: BTreeSet<CreditEntry> = commit
-                        .message()
-                        .expect("can't decode a commit message")
-                        .split("<@!")
-                        .skip(1)
-                        .map(|part| {
-                            credit.get(&format!(
-                                "<@!{}>",
-                                part.split('>')
-                                    .next()
-                                    .expect("can't parse a Discord handle in a commit message")
-                            ))
-                        })
-                        .collect();
-
                     match change_is_on {
                         "portrait" => {
-                            change.authors = handles_in_commit_message;
-
                             let portrait_file = repo
                                 .find_blob(reference_file.id())
                                 .expect("can't get a portrait blob")
@@ -172,12 +210,15 @@ impl AllChanges {
                             {
                                 continue;
                             };
-                            let changed_anim_name = changed_content_name.split('-').next().unwrap();
-                            if change.sprites_change.already_handled(changed_anim_name) {
-                                continue;
+
+                            //TODO: that's ugly
+                            let mut iter_for_change_kind = changed_content_name.split("-");
+                            iter_for_change_kind.next().unwrap();
+                            if "Anim" != iter_for_change_kind.next().unwrap() {
+                                continue
                             }
 
-                            change.authors = handles_in_commit_message;
+                            let changed_anim_name = changed_content_name.split('-').next().unwrap();
 
                             let reference_sprite = get_sprite_sheet_from_tree(
                                 &repo,
@@ -218,6 +259,8 @@ impl AllChanges {
                 root_folder => panic!("unknown root file/folder: {:?}", root_folder),
             }
         }
+
+        result
     }
 }
 

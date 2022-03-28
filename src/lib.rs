@@ -1,5 +1,5 @@
 mod git_change;
-pub use git_change::{Change, ChangeHistory, KindChange, SpriteSheetContent};
+pub use git_change::{Change, KindChange, SpriteSheetContent};
 
 mod get_changes_from_repo;
 pub use get_changes_from_repo::get_changes_from_repo;
@@ -17,7 +17,7 @@ mod tracker;
 pub use tracker::Tracker;
 
 mod credit;
-pub use credit::Credit;
+pub use credit::{GlobalCredit, SingleMonsterCredit};
 
 mod imagestore;
 pub use imagestore::ImageStore;
