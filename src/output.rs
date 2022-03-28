@@ -62,27 +62,35 @@ impl Output {
     }
 
     pub fn render_html(&self, image_store: &mut ImageStore) -> Markup {
-        html!(
+        return html!(
             button onclick="unfoldmonster()" { "Open all" }
             @for (key, sections) in &self.out {
-                details class="monstergeneral" {
-                    summary {
-                        b { (key.0) }
-                        @if !key.1.is_empty() {
-                            " by "
-                            @for (remaining, author) in key.1.iter().enumerate().rev() {
-                                (author.render_html())
-                                @if remaining > 1 {
-                                    ", "
-                                }
-                                @if remaining == 1 {
-                                    " and "
-                                }
+                @let open = !key.0.contains("Shiny");
+                @let inner = html!(summary {
+                    b { (key.0) }
+                    @if !key.1.is_empty() {
+                        " by "
+                        @for (remaining, author) in key.1.iter().enumerate().rev() {
+                            (author.render_html())
+                            @if remaining > 1 {
+                                ", "
+                            }
+                            @if remaining == 1 {
+                                " and "
                             }
                         }
                     }
+                    }
                     @for section in sections {
                         (section.render_html(image_store))
+                    });
+                @if open {
+                    details class="monstergeneral" open {
+                        (inner)
+                    }
+                } @else {
+                    details class="monstergeneral" {
+                        (inner)
                     }
                 }
             }
